@@ -1,0 +1,43 @@
+name: Reusable — React
+
+on:
+  workflow_call:
+
+env:
+  WORKING_DIR: frontend/react/carrito-compras-frontend
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Lint
+        run: npm run lint --if-present
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Build
+        run: npm run build
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Test
+        run: npm test -- --watchAll=false --passWithNoTests
+        working-directory: ${{ env.WORKING_DIR }}
+
+  # deploy:
+  #   needs: [build, test]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     # TODO: agregar Terraform / az CLI cuando esté lista la infra

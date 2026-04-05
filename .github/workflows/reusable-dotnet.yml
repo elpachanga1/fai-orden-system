@@ -1,0 +1,35 @@
+name: Reusable — .NET
+
+on:
+  workflow_call:
+
+jobs:
+  # Un solo job: build y test son secuenciales por naturaleza (test depende del
+  # binario producido por build), por lo que no hay paralelismo posible.
+  # Consolidarlos evita instanciar una segunda máquina, hacer un segundo checkout
+  # y un segundo restore — lo que reduciría el tiempo total sin ningún beneficio.
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore backend-dotnet/CarritoComprasBackend.sln
+
+      - name: Build
+        run: dotnet build backend-dotnet/CarritoComprasBackend.sln --configuration Release --no-restore /consoleloggerparameters:NoSummary
+
+      - name: Test
+        run: dotnet test backend-dotnet/CarritoComprasBackend.sln --no-build --configuration Release --logger "console;verbosity=normal" --nologo
+
+  # deploy:
+  #   needs: build-and-test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     # TODO: agregar Terraform / az CLI cuando esté lista la infra
