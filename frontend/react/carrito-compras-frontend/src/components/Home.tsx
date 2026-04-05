@@ -18,7 +18,7 @@ function Home() {
         if(isEmpty(userLogged)) {
             navigate('/login');
         }
-    }, [])
+    }, [navigate])
 	return (
 		<>
 			<Header

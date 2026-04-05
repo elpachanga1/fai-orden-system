@@ -40,12 +40,14 @@ export const Counter: FunctionComponent<Props> = ({
         <img
           className="counter-button"
           src={process.env.PUBLIC_URL + "/svg/trash.svg"}
+          alt="Remove item"
           onClick={reduce}
         />
       ) : (
         <img
           className="counter-button"
           src={process.env.PUBLIC_URL + "/svg/remove-circle.svg"}
+          alt="Decrease quantity"
           onClick={reduce}
         />
       )}
@@ -54,6 +56,7 @@ export const Counter: FunctionComponent<Props> = ({
       <img
         className="counter-button"
         src={process.env.PUBLIC_URL + "/svg/add-circle.svg"}
+        alt="Increase quantity"
         onClick={increase}
       />
     </div>

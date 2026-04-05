@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { getToken } from "../utils/tokenUtil";
 import { isEmpty } from "lodash";
 import { useNavigate, useLocation } from "react-router";

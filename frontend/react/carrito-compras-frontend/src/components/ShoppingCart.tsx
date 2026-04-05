@@ -4,7 +4,7 @@ import { Item, ShoppingCart } from "../entities/Interfaces";
 import * as CartService from "../services/CartService";
 import * as ShoppingCartUtils from "../utils/ShoppingCartUtils";
 import { Counter } from "./Counter";
-import { get } from "lodash";
+
 import { getToken } from "../utils/tokenUtil";
 
 export const ShoppingCartMenu = ({ shoppingCart, setShoppingCart }: any) => {
