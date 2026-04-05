@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/ShoppingCartBackEnd.csproj",
+                "${workspaceFolder}/backend-dotnet/CarritoComprasBackend/ShoppingCartBackEnd.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -19,7 +19,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/ShoppingCartBackEnd.csproj",
+                "${workspaceFolder}/backend-dotnet/CarritoComprasBackend/ShoppingCartBackEnd.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -33,7 +33,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/ShoppingCartBackEnd.csproj"
+                "${workspaceFolder}/backend-dotnet/CarritoComprasBackend/ShoppingCartBackEnd.csproj"
             ],
             "problemMatcher": "$msCompile"
         }
