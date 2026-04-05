@@ -3,6 +3,11 @@ backend-dotnet/BusinessRules/obj/
 backend-dotnet/CarritoComprasBackend/bin/
 backend-dotnet/CarritoComprasBackend/obj/
 backend-dotnet/CarritoComprasBackend/.vs/
+
+# Variables de entorno locales
+.env
+**/.env
+
 backend-dotnet/DataRepository/bin/
 backend-dotnet/DataRepository/obj/
 backend-dotnet/Services/bin/

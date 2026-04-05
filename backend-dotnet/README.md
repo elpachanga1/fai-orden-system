@@ -132,23 +132,32 @@ En `CarritoComprasBackend/Resources/` hay tres archivos CSV con productos de eje
 
 Todos tienen el mismo formato de columnas: `Sku, Name, Description, AvailableUnits, UnitPrice, Image`.
 
-Para importarlos ejecutá el script de seed desde la raíz del workspace:
+Para importarlos ejecutá el script de seed. Requiere **Git Bash** (recomendado en Windows) o cualquier shell Bash compatible.
+
+**Paso 1** — copiá el archivo de ejemplo y completá tus credenciales de PostgreSQL:
+
+```bash
+cp backend-dotnet/CarritoComprasBackend/Resources/.env.example \
+   backend-dotnet/CarritoComprasBackend/Resources/.env
+```
+
+**Paso 2** — editá el `.env` con tus valores reales (host, puerto, usuario, contraseña).
+
+**Paso 3** — ejecutá desde la raíz del workspace con **Git Bash**:
 
 ```bash
 bash backend-dotnet/CarritoComprasBackend/Resources/seed.sh
 ```
 
-El script acepta parámetros opcionales `[host] [port] [user]` si tu PostgreSQL usa una configuración diferente a la de por defecto:
-
-```bash
-bash backend-dotnet/CarritoComprasBackend/Resources/seed.sh 192.168.1.10 5433 miusuario
-```
+El script:
+- Verifica si `Products` y `Users` ya tienen datos. Si ambas están pobladas, **no escribe nada** y termina.
+- Si alguna está vacía, carga los tres CSVs de productos y crea el usuario administrador.
 
 > Si usás pgAdmin o DBeaver, podés importar los CSV directamente con la opción **Import/Export** sobre la tabla `Products`.
 
-### 5. Cargar usuario inicial
+### 5. Usuario administrador inicial
 
-La app **no tiene registro público**. El mismo script `seed.sh` del paso anterior también crea el usuario administrador:
+El mismo `seed.sh` crea el usuario administrador (la app no tiene registro público):
 
 | Campo | Valor |
 |---|---|
