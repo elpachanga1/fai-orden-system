@@ -1,6 +1,6 @@
-﻿using Validations.Interface;
+using Validations.Interface;
 
-namespace ValidationFactory
+namespace Validations
 {
     public interface ICreatorFactory
     {

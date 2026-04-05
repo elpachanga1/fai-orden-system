@@ -1,17 +1,12 @@
 backend-dotnet/BusinessRules/bin/
 backend-dotnet/BusinessRules/obj/
+backend-dotnet/BusinessRules.Tests/bin/
+backend-dotnet/BusinessRules.Tests/obj/
 backend-dotnet/CarritoComprasBackend/bin/
 backend-dotnet/CarritoComprasBackend/obj/
+backend-dotnet/CarritoComprasBackend.Tests/bin/
+backend-dotnet/CarritoComprasBackend.Tests/obj/
 backend-dotnet/CarritoComprasBackend/.vs/
-
-# Variables de entorno locales
-.env
-**/.env
-
-# Dumps de base de datos
-*.sql
-*.dump
-
 backend-dotnet/DataRepository/bin/
 backend-dotnet/DataRepository/obj/
 backend-dotnet/Services/bin/
@@ -21,5 +16,14 @@ backend-dotnet/ValidationFactory/obj/
 backend-dotnet/Validations/bin/
 backend-dotnet/Validations/obj/
 
-carrito-compras-frontend/build/
-carrito-compras-frontend/node_modules/
+# Variables de entorno locales
+.env
+**/.env
+
+# Dumps de base de datos
+*.sql
+*.dump
+
+
+frontend/react/carrito-compras-frontend/build/
+frontend/react/carrito-compras-frontend/node_modules/

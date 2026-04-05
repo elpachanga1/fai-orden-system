@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Validations.ConcretImplementation;
 using Validations.Interface;
 
-namespace ValidationFactory
+namespace Validations
 {
     public class ConcreteChainCreator : ICreatorFactory
     {

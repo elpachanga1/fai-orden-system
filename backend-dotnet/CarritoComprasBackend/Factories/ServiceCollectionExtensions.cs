@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using DataRepository.Repositories;
 using Services.Domain.Services;
-using ValidationFactory;
+using Validations;
 
 namespace ShoppingCartBackEnd.Factories
 {

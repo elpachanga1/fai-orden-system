@@ -21,7 +21,6 @@
     <ProjectReference Include="..\BusinessRules\BusinessRules.csproj" />
     <ProjectReference Include="..\DataRepository\DataRepository.csproj" />
     <ProjectReference Include="..\Services\Services.csproj" />
-    <ProjectReference Include="..\ValidationFactory\ValidationFactory.csproj" />
     <ProjectReference Include="..\Validations\Validations.csproj" />
   </ItemGroup>
 
