@@ -3,6 +3,9 @@ name: Reusable — .NET
 on:
   workflow_call:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # Un solo job: build y test son secuenciales por naturaleza (test depende del
   # binario producido por build), por lo que no hay paralelismo posible.
