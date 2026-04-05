@@ -2,10 +2,10 @@
 {
     public class Request
     {
-        public string UserName {get; set;}
+        public required string UserName {get; set;}
         public DateTime ProcessCreationDate { get; set; }
-        public List<ValidationMap> ValidationMaps { get; set; }
-        public string RecoveryNextHandlerName { get; set; }
+        public List<ValidationMap> ValidationMaps { get; set; } = new List<ValidationMap>();
+        public string? RecoveryNextHandlerName { get; set; }
         
 }
 }

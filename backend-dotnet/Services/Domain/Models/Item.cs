@@ -8,6 +8,6 @@
         public int Quantity { get; set; }
         public bool IsDeleted { get; set; }
         public float TotalPrice { get; set; }
-        public Product ProductReference { get; set; }
+        public Product? ProductReference { get; set; }
     }
 }

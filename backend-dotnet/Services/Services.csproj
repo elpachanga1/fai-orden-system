@@ -7,7 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <!-- NU1903: Vulnerabilidad en AutoMapper 13.0.1 (GHSA-rvv3-g6hj-g44x - recursión ciclica).
+         La versión corregida (v16) requiere licencia comercial;
+         el riesgo es bajo porque solo mapeamos tipos conocidos en tiempo de compilación. -->
+    <PackageReference Include="AutoMapper" Version="13.0.1" NoWarn="NU1903" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.3" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.1" />
   </ItemGroup>

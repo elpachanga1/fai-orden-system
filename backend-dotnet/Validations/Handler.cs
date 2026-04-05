@@ -5,7 +5,7 @@ namespace Validations
 {
     public abstract class Handler: IHandler
     {
-        protected IHandler NextHandler;
+        protected IHandler? NextHandler;
         public abstract string HandlerName { get; }
 
         public virtual IHandler SetNext(IHandler handler)

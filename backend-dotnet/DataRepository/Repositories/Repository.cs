@@ -17,7 +17,7 @@ namespace DataRepository.Repositories
             return await _context.Set<T>().ToListAsync();
         }
 
-        public async Task<T> FindByIdAsync(int id)
+        public async Task<T?> FindByIdAsync(int id)
         {
             return await _context.Set<T>().FindAsync(id);
         }

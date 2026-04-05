@@ -43,7 +43,7 @@ namespace Services.Domain.Services
             {
                 userDomainEntity = _mapper.Map<Models.User>(userDataEntity);
                 userDomainEntity.Password = string.Empty;
-                Models.Session? session = await _sessionService.AddSession(userDomainEntity);
+                Models.Session session = await _sessionService.AddSession(userDomainEntity);
                 session.Token = _authenticationHelper.GenerateJWTToken(userDataEntity);
                 userDomainEntity.SessionReference = session;
             }

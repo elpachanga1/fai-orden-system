@@ -52,6 +52,8 @@ namespace Services.Domain.Services
             var currentItem = (await _itemRepository.GetAllAsync()).FirstOrDefault(x => x.IdProduct == IdProduct);
             Models.Product? productDomainEntity = await _productService.GetProductById(IdProduct);
 
+            if (productDomainEntity == null) return false;
+
             if (currentItem == null)
             {
                 Models.Item itemDomainEntity = new Models.Item();

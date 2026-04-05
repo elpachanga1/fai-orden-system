@@ -27,7 +27,7 @@ namespace Validations
             return request;
         }
 
-        public Request DeleteRequest(string userName)
+        public Request? DeleteRequest(string userName)
         {
             if (_requests.TryGetValue(userName, out var request))
             {

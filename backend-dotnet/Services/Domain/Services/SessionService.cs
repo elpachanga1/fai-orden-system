@@ -19,7 +19,9 @@ namespace Services.Domain.Services
             _mapper = mapper;
             _config = configuration;
             _sessionRepository = sessionRepository;
-            authActivityTime = int.Parse(_config["auth:authActivityTime"]);
+            authActivityTime = int.Parse(
+                _config["auth:authActivityTime"]
+                ?? throw new InvalidOperationException("La clave 'auth:authActivityTime' no está configurada en appsettings."));
         }
 
         public async Task<Models.Session> AddSession(Models.User user)

@@ -16,7 +16,7 @@ namespace ShoppingCartBackEnd.Controllers
         }
 
         [HttpGet("/Process/GetProcess", Name = "GetProcess")]
-        public async Task<IActionResult> GetProcess(string username)
+        public IActionResult GetProcess(string username)
         {
             var request = InMemoryRequestRepository.Instance.GetRequest(username);
 
@@ -24,7 +24,7 @@ namespace ShoppingCartBackEnd.Controllers
         }
 
         [HttpPost("/Process/RunValidation", Name = "RunValidation")]
-        public async Task<IActionResult> RunValidation(string username)
+        public IActionResult RunValidation(string username)
         {
             
             IHandler handlerChain = _creatorFactory.CreateChain();
@@ -43,7 +43,7 @@ namespace ShoppingCartBackEnd.Controllers
              
 
         [HttpDelete("/Process/DeleteProcess", Name = "DeleteProcess")]
-        public async Task<IActionResult> DeleteProcess(string username)
+        public IActionResult DeleteProcess(string username)
         {
             var request = InMemoryRequestRepository.Instance.DeleteRequest(username);
 
