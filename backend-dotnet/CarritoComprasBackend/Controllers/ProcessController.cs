@@ -1,6 +1,5 @@
 ﻿using CarritoComprasBackend.Controllers;
 using Microsoft.AspNetCore.Mvc;
-using Services.Domain.Services;
 using ValidationFactory;
 using Validations;
 using Validations.Interface;
@@ -9,13 +8,10 @@ namespace ShoppingCartBackEnd.Controllers
 {
     public class ProcessController : Controller
     {
-        private readonly ILogger<StoreController> _logger;
-        private readonly StoreService _storeService;
         private readonly ICreatorFactory _creatorFactory;
 
-        public ProcessController(ILogger<StoreController> logger, ICreatorFactory creatorFactory)
+        public ProcessController(ICreatorFactory creatorFactory)
         {
-            this._logger = logger;
             this._creatorFactory = creatorFactory;
         }
 

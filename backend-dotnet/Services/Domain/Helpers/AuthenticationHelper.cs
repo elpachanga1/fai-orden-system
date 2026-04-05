@@ -19,8 +19,11 @@ namespace Services.Domain.Helpers
         public AuthenticationHelper(IConfiguration configuration)
         {
             _configuration = configuration;
-            secretKey = _configuration["auth:secretKey"];
-            authActivityTime = int.Parse(_configuration["auth:authActivityTime"]);
+            secretKey = _configuration["auth:secretKey"]
+                ?? throw new InvalidOperationException("La clave 'auth:secretKey' no está configurada en appsettings.");
+            authActivityTime = int.Parse(
+                _configuration["auth:authActivityTime"]
+                ?? throw new InvalidOperationException("La clave 'auth:authActivityTime' no está configurada en appsettings."));
         }
 
         public string Hash(string password)

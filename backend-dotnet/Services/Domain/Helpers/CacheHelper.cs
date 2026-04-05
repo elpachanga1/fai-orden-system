@@ -15,8 +15,11 @@ namespace Services.Domain.Helpers
             var options = new MemoryCacheOptions();
             cache = new MemoryCache(options);
             _configuration = configuration;
-            cacheActivityTime = int.Parse(_configuration["cache:cacheActivityTime"]);
-            cacheItemFlag = _configuration["cache:cacheItemFlag"];
+            cacheActivityTime = int.Parse(
+                _configuration["cache:cacheActivityTime"]
+                ?? throw new InvalidOperationException("La clave 'cache:cacheActivityTime' no está configurada en appsettings."));
+            cacheItemFlag = _configuration["cache:cacheItemFlag"]
+                ?? throw new InvalidOperationException("La clave 'cache:cacheItemFlag' no está configurada en appsettings.");
         }
 
         public Models.Item[]? GetCacheData(string key)

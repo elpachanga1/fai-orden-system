@@ -14,14 +14,13 @@ namespace CarritoComprasBackend.Controllers
     [ApiController]
     public class StoreController : ControllerBase
     {
-        private readonly ILogger<StoreController> _logger;
         private readonly StoreService _storeService;
         private readonly ICreatorFactory _creatorFactory;
 
-        public StoreController(ILogger<StoreController> logger, StoreService storeFactory, ICreatorFactory creatorFactory)
+        public StoreController(StoreService storeFactory, ICreatorFactory creatorFactory)
         {
-            this._logger = logger;
-            this._storeService = storeFactory;          
+            this._storeService = storeFactory;
+            this._creatorFactory = creatorFactory;
         }
 
         [HttpGet("/Product/GetProductById/{id}", Name = "GetProductById")]

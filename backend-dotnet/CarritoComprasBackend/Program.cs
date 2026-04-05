@@ -1,6 +1,7 @@
 using DataRepository.Data;
 using DataRepository.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ShoppingCartBackEnd.Factories;
@@ -9,14 +10,15 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 
 //builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddAutoMapper(typeof(Program), typeof(Services.MappingProfile));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("WebApiDatabase")), ServiceLifetime.Scoped);
+    options.UseNpgsql(builder.Configuration.GetConnectionString("WebApiDatabase")),
+    ServiceLifetime.Scoped
+);
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
@@ -31,24 +33,36 @@ builder.Services.AddValidationChainService();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+var allowedOrigin = builder.Configuration["Cors:AllowedOrigin"]!;
 builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowReactApp",
-            builder =>
+            corsBuilder =>
             {
-                builder.WithOrigins("http://localhost:3000")
-                       .AllowAnyMethod()
-                       .AllowAnyHeader();
+                corsBuilder.WithOrigins(allowedOrigin)
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
             });
     });
 builder.Services.AddApplicationInsightsTelemetry();
+
+builder.Services.AddHttpLogging(logging =>
+{
+    logging.LoggingFields = HttpLoggingFields.RequestMethod
+                          | HttpLoggingFields.RequestPath
+                          | HttpLoggingFields.ResponseStatusCode
+                          | HttpLoggingFields.Duration;
+});
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        var secretKey = builder.Configuration["auth:secretKey"]
+            ?? throw new InvalidOperationException("La clave 'auth:secretKey' no está configurada en appsettings.");
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["auth:secretKey"])),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
             ValidateIssuer = false,
             ValidateAudience = false
         };
@@ -64,6 +78,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseHttpLogging();
 
 app.UseCors("AllowReactApp");
 

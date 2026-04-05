@@ -13,13 +13,11 @@ namespace ShoppingCartBackEnd.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly ILogger<StoreController> _logger;
         private readonly StoreService _storeService;
         private readonly ICreatorFactory _creatorFactory;
 
-        public AuthController(ILogger<StoreController> logger, StoreService storeFactory, ICreatorFactory creatorFactory)
+        public AuthController(StoreService storeFactory, ICreatorFactory creatorFactory)
         {
-            this._logger = logger;
             this._storeService = storeFactory;
             this._creatorFactory = creatorFactory;
         }

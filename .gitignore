@@ -8,6 +8,10 @@ backend-dotnet/CarritoComprasBackend/.vs/
 .env
 **/.env
 
+# Dumps de base de datos
+*.sql
+*.dump
+
 backend-dotnet/DataRepository/bin/
 backend-dotnet/DataRepository/obj/
 backend-dotnet/Services/bin/
