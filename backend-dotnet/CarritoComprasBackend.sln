@@ -3,21 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShoppingCartBackEnd", "ShoppingCartBackEnd.csproj", "{42A8A370-F99E-4313-8C10-8E0B52F4E984}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShoppingCartBackEnd", "src\CarritoComprasBackend\ShoppingCartBackEnd.csproj", "{42A8A370-F99E-4313-8C10-8E0B52F4E984}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataRepository", "..\DataRepository\DataRepository.csproj", "{02F070DE-FA2A-4E3A-972D-1E63AB3C5B0C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataRepository", "src\DataRepository\DataRepository.csproj", "{02F070DE-FA2A-4E3A-972D-1E63AB3C5B0C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Services", "..\Services\Services.csproj", "{249B8C4F-E4A6-421E-A694-84F2B7E8CE88}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Services", "src\Services\Services.csproj", "{249B8C4F-E4A6-421E-A694-84F2B7E8CE88}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BusinessRules", "..\BusinessRules\BusinessRules.csproj", "{6564FC22-3402-42DB-9560-FB20EAA23876}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BusinessRules", "src\BusinessRules\BusinessRules.csproj", "{6564FC22-3402-42DB-9560-FB20EAA23876}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Validations", "..\Validations\Validations.csproj", "{00240C33-2D43-4611-8163-9FD96548C398}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Validations", "src\Validations\Validations.csproj", "{00240C33-2D43-4611-8163-9FD96548C398}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ValidationLogic", "ValidationLogic", "{8A8205F3-205E-4612-B927-B96BB6D8223B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CarritoComprasBackend.Tests", "tests\CarritoComprasBackend.Tests\CarritoComprasBackend.Tests.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CarritoComprasBackend.Tests", "..\CarritoComprasBackend.Tests\CarritoComprasBackend.Tests.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BusinessRules.Tests", "..\BusinessRules.Tests\BusinessRules.Tests.csproj", "{F2D3EF88-F5D3-4A9E-AFFA-B39AAFE55ABC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BusinessRules.Tests", "tests\BusinessRules.Tests\BusinessRules.Tests.csproj", "{F2D3EF88-F5D3-4A9E-AFFA-B39AAFE55ABC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -58,7 +56,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{00240C33-2D43-4611-8163-9FD96548C398} = {8A8205F3-205E-4612-B927-B96BB6D8223B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3141EF67-7B70-44CE-BB39-7AFA7A9B24E4}

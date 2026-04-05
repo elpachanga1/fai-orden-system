@@ -1,20 +1,19 @@
-backend-dotnet/BusinessRules/bin/
-backend-dotnet/BusinessRules/obj/
-backend-dotnet/BusinessRules.Tests/bin/
-backend-dotnet/BusinessRules.Tests/obj/
-backend-dotnet/CarritoComprasBackend/bin/
-backend-dotnet/CarritoComprasBackend/obj/
-backend-dotnet/CarritoComprasBackend.Tests/bin/
-backend-dotnet/CarritoComprasBackend.Tests/obj/
-backend-dotnet/CarritoComprasBackend/.vs/
-backend-dotnet/DataRepository/bin/
-backend-dotnet/DataRepository/obj/
-backend-dotnet/Services/bin/
-backend-dotnet/Services/obj/
-backend-dotnet/ValidationFactory/bin/
-backend-dotnet/ValidationFactory/obj/
-backend-dotnet/Validations/bin/
-backend-dotnet/Validations/obj/
+backend-dotnet/src/BusinessRules/bin/
+backend-dotnet/src/BusinessRules/obj/
+backend-dotnet/src/CarritoComprasBackend/bin/
+backend-dotnet/src/CarritoComprasBackend/obj/
+backend-dotnet/src/CarritoComprasBackend/.vs/
+backend-dotnet/src/DataRepository/bin/
+backend-dotnet/src/DataRepository/obj/
+backend-dotnet/src/Services/bin/
+backend-dotnet/src/Services/obj/
+backend-dotnet/src/Validations/bin/
+backend-dotnet/src/Validations/obj/
+
+backend-dotnet/tests/BusinessRules.Tests/bin/
+backend-dotnet/tests/BusinessRules.Tests/obj/
+backend-dotnet/tests/CarritoComprasBackend.Tests/bin/
+backend-dotnet/tests/CarritoComprasBackend.Tests/obj/
 
 # Variables de entorno locales
 .env
