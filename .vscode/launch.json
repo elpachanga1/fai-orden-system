@@ -6,9 +6,9 @@
         "type": "coreclr",
         "request": "launch",
         "preLaunchTask": "build",
-        "program": "${workspaceFolder}/backend-dotnet/CarritoComprasBackend/bin/Debug/net8.0/ShoppingCartBackEnd.dll",
+        "program": "${workspaceFolder}/backend-dotnet/src/CarritoComprasBackend/bin/Debug/net8.0/ShoppingCartBackEnd.dll",
         "args": [],
-        "cwd": "${workspaceFolder}/backend-dotnet/CarritoComprasBackend",
+        "cwd": "${workspaceFolder}/backend-dotnet/src/CarritoComprasBackend",
         "stopAtEntry": false,
         "serverReadyAction": {
           "action": "openExternally",
@@ -18,7 +18,7 @@
           "ASPNETCORE_ENVIRONMENT": "Development"
         },
         "sourceFileMap": {
-          "/Views": "${workspaceFolder}/backend-dotnet/CarritoComprasBackend/Views"
+          "/Views": "${workspaceFolder}/backend-dotnet/src/CarritoComprasBackend/Views"
         }
       }
     ]
