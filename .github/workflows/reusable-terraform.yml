@@ -16,6 +16,8 @@ on:
         required: true
       TF_STATE_STORAGE_ACCOUNT:
         required: true
+      TF_STATE_STORAGE_KEY:
+        required: true
       TF_POSTGRESQL_PASSWORD:
         required: true
       TF_JWT_SECRET_KEY:
@@ -57,6 +59,10 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      # backend.conf se genera en el runner — no esta en el repo (ver .gitignore).
+      # access_key autentica el backend independientemente de OIDC,
+      # lo que permite que terraform init funcione antes del primer apply
+      # (los secrets AZURE_CLIENT_ID etc. los crea el modulo github en el primer apply).
       - name: Generate backend.conf
         run: |
           cat > backend.conf << EOF
@@ -64,6 +70,7 @@ jobs:
           storage_account_name = "${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
           container_name       = "tfstate"
           key                  = "carrito-compras.tfstate"
+          access_key           = "${{ secrets.TF_STATE_STORAGE_KEY }}"
           EOF
 
       - name: Terraform Init
@@ -149,6 +156,7 @@ jobs:
           storage_account_name = "${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
           container_name       = "tfstate"
           key                  = "carrito-compras.tfstate"
+          access_key           = "${{ secrets.TF_STATE_STORAGE_KEY }}"
           EOF
 
       - name: Terraform Init

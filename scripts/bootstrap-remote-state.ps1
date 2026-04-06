@@ -111,14 +111,23 @@ az storage container create `
     --auth-mode login `
     --output none
 
-# ---------- 6. Imprimir backend config ----------
-Write-Host "[6/6] Generando archivo backend.conf..." -ForegroundColor Cyan
+# ---------- 6. Recuperar access key y generar backend.conf ----------
+Write-Host "[6/6] Recuperando access key y generando terraform/backend.conf..." -ForegroundColor Cyan
+
+$StorageKey = az storage account keys list `
+    --account-name $StorageAccountName `
+    --resource-group $ResourceGroupName `
+    --subscription $SubscriptionId `
+    --query "[0].value" `
+    -o tsv
+if ($LASTEXITCODE -ne 0) { throw "Error al obtener la access key del Storage Account." }
 
 $backendConf = @"
 resource_group_name  = "$ResourceGroupName"
 storage_account_name = "$StorageAccountName"
 container_name       = "$ContainerName"
 key                  = "carrito-compras.tfstate"
+access_key           = "$StorageKey"
 "@
 
 $backendConfPath = Join-Path $PSScriptRoot "..\terraform\backend.conf"
@@ -136,12 +145,22 @@ Write-Host @"
  Container         : $ContainerName
  Archivo generado  : terraform/backend.conf
 
- Siguiente paso — inicializar Terraform con el backend remoto:
+ SECRETS A CREAR MANUALMENTE EN GITHUB
+ (Settings -> Secrets and variables -> Actions -> New repository secret)
 
+  TF_STATE_STORAGE_ACCOUNT = $StorageAccountName
+  TF_STATE_STORAGE_KEY     = (ver terraform/backend.conf -> access_key)
+
+ Estos dos secrets permiten que CI conecte al backend desde el primer push.
+ Los secrets de OIDC (AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID)
+ se crean automaticamente en el primer `terraform apply` local.
+
+ Siguiente paso:
    cd terraform
-   terraform init -backend-config=backend.conf
+   # Copiar terraform.tfvars.example a terraform.tfvars y completar valores
+   terraform init "-backend-config=backend.conf"
+   terraform apply   # <- este apply crea los secrets OIDC en GitHub
 
- IMPORTANTE: backend.conf esta en .gitignore.
- No lo commitees — contiene el nombre del storage account.
+ IMPORTANTE: backend.conf esta en .gitignore. No lo commitees.
 ============================================================
 "@ -ForegroundColor Green
