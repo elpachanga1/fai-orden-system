@@ -1,0 +1,92 @@
+name: CI / CD
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+# id-token: write es requerido por reusable-terraform y reusable-dotnet (OIDC login).
+# El permiso se declara aqui porque GitHub solo puede elevar permisos del caller,
+# no del reusable por si solo.
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      terraform: ${{ steps.filter.outputs.terraform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend-dotnet/**'
+              - '.github/workflows/reusable-dotnet.yml'
+              - '.github/workflows/ci-cd.yml'
+            frontend:
+              - 'frontend/react/**'
+              - '.github/workflows/reusable-react.yml'
+              - '.github/workflows/ci-cd.yml'
+            terraform:
+              - 'terraform/**'
+              - '.github/workflows/reusable-terraform.yml'
+              - '.github/workflows/ci-cd.yml'
+
+  # build + test siempre; deploy solo en push a main
+  # needs: terraform garantiza que si hubo cambios de infra, el apply termine
+  # antes de que el App Service reciba codigo nuevo.
+  # Si terraform fue skipped (sin cambios de infra), GitHub lo trata como passed
+  # y dotnet corre igual sin esperar nada.
+  dotnet:
+    needs: [detect-changes, terraform]
+    if: needs.detect-changes.outputs.backend == 'true'
+    uses: ./.github/workflows/reusable-dotnet.yml
+    with:
+      deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      app_name: "app-carrito-dev"
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  # build + test siempre; deploy solo en push a main
+  # Mismo razonamiento que dotnet: espera a terraform si hubo cambios de infra.
+  react:
+    needs: [detect-changes, terraform]
+    if: needs.detect-changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/reusable-react.yml
+    with:
+      deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    secrets:
+      AZURE_STATIC_WEB_APPS_API_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+      REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+
+  # plan siempre; apply solo en push a main (con aprobacion del environment 'production')
+  terraform:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.terraform == 'true'
+    uses: ./.github/workflows/reusable-terraform.yml
+    with:
+      deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      TF_STATE_STORAGE_ACCOUNT: ${{ secrets.TF_STATE_STORAGE_ACCOUNT }}
+      TF_POSTGRESQL_PASSWORD: ${{ secrets.TF_POSTGRESQL_PASSWORD }}
+      TF_JWT_SECRET_KEY: ${{ secrets.TF_JWT_SECRET_KEY }}
+      TF_GITHUB_TOKEN: ${{ secrets.TF_GITHUB_TOKEN }}
+
