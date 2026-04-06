@@ -1,0 +1,24 @@
+<div class="counter-container">
+  @if (value() === 1) {
+    <img
+      class="counter-button"
+      src="svg/trash.svg"
+      alt="Remove item"
+      (click)="reduce()"
+    />
+  } @else {
+    <img
+      class="counter-button"
+      src="svg/remove-circle.svg"
+      alt="Decrease quantity"
+      (click)="reduce()"
+    />
+  }
+  <span class="counter-label">{{ value() }}</span>
+  <img
+    class="counter-button"
+    src="svg/add-circle.svg"
+    alt="Increase quantity"
+    (click)="increase()"
+  />
+</div>

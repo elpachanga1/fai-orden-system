@@ -1,0 +1,14 @@
+<div class="container-items">
+  @for (product of products(); track product.id) {
+    <div class="item">
+      <figure>
+        <img [src]="product.image" [alt]="product.name" />
+      </figure>
+      <div class="info-product">
+        <h2>{{ product.name }}</h2>
+        <p class="unitPrice">${{ product.unitPrice }}</p>
+        <button (click)="onAddProduct(product)">Añadir al carrito</button>
+      </div>
+    </div>
+  }
+</div>
