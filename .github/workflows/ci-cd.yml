@@ -5,6 +5,7 @@ on:
     branches: ["**"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 # id-token: write es requerido por reusable-terraform y reusable-dotnet (OIDC login).
 # El permiso se declara aqui porque GitHub solo puede elevar permisos del caller,
