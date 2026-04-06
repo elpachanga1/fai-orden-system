@@ -89,7 +89,7 @@ jobs:
             -var="postgresql_admin_password=${{ secrets.TF_POSTGRESQL_PASSWORD }}" \
             -var="jwt_secret_key=${{ secrets.TF_JWT_SECRET_KEY }}" \
           2>&1 | tee plan_output.txt
-          echo "exitcode=$?" >> $GITHUB_OUTPUT
+          echo "exitcode=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
         continue-on-error: true
 
       - name: Comment PR with Plan
