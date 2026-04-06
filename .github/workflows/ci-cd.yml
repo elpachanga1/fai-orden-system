@@ -39,13 +39,13 @@ jobs:
       # push/PR: usamos el diff de paths. paths-filter sin diff retorna 'true',
       # por eso no podemos hacer fallback a filter en workflow_dispatch.
       backend: ${{
-        (github.event_name == 'workflow_dispatch' && inputs.run_backend && 'true') ||
+        (github.event_name == 'workflow_dispatch' && inputs.run_backend == 'true' && 'true') ||
         (github.event_name != 'workflow_dispatch' && steps.filter.outputs.backend) || 'false' }}
       frontend: ${{
-        (github.event_name == 'workflow_dispatch' && inputs.run_frontend && 'true') ||
+        (github.event_name == 'workflow_dispatch' && inputs.run_frontend == 'true' && 'true') ||
         (github.event_name != 'workflow_dispatch' && steps.filter.outputs.frontend) || 'false' }}
       terraform: ${{
-        (github.event_name == 'workflow_dispatch' && inputs.run_terraform && 'true') ||
+        (github.event_name == 'workflow_dispatch' && inputs.run_terraform == 'true' && 'true') ||
         (github.event_name != 'workflow_dispatch' && steps.filter.outputs.terraform) || 'false' }}
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +68,16 @@ jobs:
               - '.github/workflows/reusable-terraform.yml'
               - '.github/workflows/ci-cd.yml'
 
+      - name: Debug — decision variables
+        run: |
+          echo "event_name:       ${{ github.event_name }}"
+          echo "in.run_backend:   ${{ inputs.run_backend }}"
+          echo "in.run_frontend:  ${{ inputs.run_frontend }}"
+          echo "in.run_terraform: ${{ inputs.run_terraform }}"
+          echo "filter.backend:   ${{ steps.filter.outputs.backend }}"
+          echo "filter.frontend:  ${{ steps.filter.outputs.frontend }}"
+          echo "filter.terraform: ${{ steps.filter.outputs.terraform }}"
+
   # build + test siempre; deploy solo en push a main
   # needs: terraform garantiza que si hubo cambios de infra, el apply termine
   # antes de que el App Service reciba codigo nuevo.
@@ -76,7 +86,7 @@ jobs:
   dotnet:
     needs: [detect-changes, terraform]
     if: |
-      needs.detect-changes.outputs.backend == 'true' &&
+      always() && needs.detect-changes.outputs.backend == 'true' &&
       (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
     uses: ./.github/workflows/reusable-dotnet.yml
     with:
@@ -87,13 +97,23 @@ jobs:
   react:
     needs: [detect-changes, terraform]
     if: |
-      needs.detect-changes.outputs.frontend == 'true' &&
+      always() && needs.detect-changes.outputs.frontend == 'true' &&
       (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
     uses: ./.github/workflows/reusable-react.yml
     with:
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     secrets:
       AZURE_STATIC_WEB_APPS_API_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+
+  debug-outputs:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, terraform]
+    if: always()
+    steps:
+      - name: Log needs context
+        run: |
+          echo "detect-changes.outputs = ${{ toJSON(needs.detect-changes.outputs) }}"
+          echo "terraform             = ${{ toJSON(needs.terraform) }}"
 
   # plan siempre; apply solo en push a main (con aprobacion del environment 'production')
   terraform:
