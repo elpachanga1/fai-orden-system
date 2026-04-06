@@ -58,6 +58,13 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: terraform/.terraform
+          key: terraform-${{ env.TF_VERSION }}-${{ hashFiles('terraform/.terraform.lock.hcl') }}
+          restore-keys: terraform-${{ env.TF_VERSION }}-
+
       # backend.conf se genera en el runner — no esta en el repo (ver .gitignore).
       - name: Generate backend.conf
         run: |
@@ -144,6 +151,13 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: terraform/.terraform
+          key: terraform-${{ env.TF_VERSION }}-${{ hashFiles('terraform/.terraform.lock.hcl') }}
+          restore-keys: terraform-${{ env.TF_VERSION }}-
 
       - name: Generate backend.conf
         run: |
