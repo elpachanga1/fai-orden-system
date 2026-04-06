@@ -1,0 +1,17 @@
+# Copia este archivo como terraform.tfvars y completa los valores.
+# terraform.tfvars esta en .gitignore — NUNCA lo commitees al repositorio.
+#
+# Uso:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # Editar terraform.tfvars con tus valores
+#   terraform plan
+
+location    = "eastus2"
+prefix      = "carrito"
+environment = "dev"
+
+tags = {
+  owner   = "tu-nombre"
+  project = "carrito-compras"
+  repo    = "elpachanga1/fai-orden-system"
+}

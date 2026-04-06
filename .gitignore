@@ -32,3 +32,15 @@ backend-dotnet/tests/Validations.Tests/obj/
 
 frontend/carrito-compras-react/build/
 frontend/carrito-compras-react/node_modules/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
