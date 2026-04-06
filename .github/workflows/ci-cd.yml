@@ -78,27 +78,24 @@ jobs:
           echo "filter.frontend:  ${{ steps.filter.outputs.frontend }}"
           echo "filter.terraform: ${{ steps.filter.outputs.terraform }}"
 
-  # build + test siempre; deploy solo en push a main
-  # needs: terraform garantiza que si hubo cambios de infra, el apply termine
-  # antes de que el App Service reciba codigo nuevo.
-  # result == 'skipped' permite que dotnet corra cuando terraform no fue seleccionado
-  # en workflow_dispatch o cuando no hubo cambios de terraform.
+  # build + test siempre; deploy solo en push a main.
+  # Si hubo cambios de terraform, se omite para no desplegar sobre infra en transicion.
   dotnet:
-    needs: [detect-changes, terraform]
+    needs: detect-changes
     if: |
-      needs.detect-changes.outputs.backend &&
-      (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
+      needs.detect-changes.outputs.backend == 'true' &&
+      needs.detect-changes.outputs.terraform != 'true'
     uses: ./.github/workflows/reusable-dotnet.yml
     with:
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
-  # build + test siempre; deploy solo en push a main
-  # Mismo razonamiento que dotnet: espera a terraform si hubo cambios de infra.
+  # build + test siempre; deploy solo en push a main.
+  # Si hubo cambios de terraform, se omite para no desplegar sobre infra en transicion.
   react:
-    needs: [detect-changes, terraform]
+    needs: detect-changes
     if: |
-      needs.detect-changes.outputs.frontend &&
-      (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
+      needs.detect-changes.outputs.frontend == 'true' &&
+      needs.detect-changes.outputs.terraform != 'true'
     uses: ./.github/workflows/reusable-react.yml
     with:
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -120,7 +117,7 @@ jobs:
   # plan siempre; apply solo en push a main (con aprobacion del environment 'production')
   terraform:
     needs: detect-changes
-    if: needs.detect-changes.outputs.terraform
+    if: needs.detect-changes.outputs.terraform == 'true'
     uses: ./.github/workflows/reusable-terraform.yml
     with:
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
