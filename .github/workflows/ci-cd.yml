@@ -86,7 +86,7 @@ jobs:
   dotnet:
     needs: [detect-changes, terraform]
     if: |
-      needs.detect-changes.outputs.backend == 'true' &&
+      needs.detect-changes.outputs.backend &&
       (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
     uses: ./.github/workflows/reusable-dotnet.yml
     with:
@@ -97,7 +97,7 @@ jobs:
   react:
     needs: [detect-changes, terraform]
     if: |
-      needs.detect-changes.outputs.frontend == 'true' &&
+      needs.detect-changes.outputs.frontend &&
       (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
     uses: ./.github/workflows/reusable-react.yml
     with:
@@ -120,7 +120,7 @@ jobs:
   # plan siempre; apply solo en push a main (con aprobacion del environment 'production')
   terraform:
     needs: detect-changes
-    if: needs.detect-changes.outputs.terraform == 'true'
+    if: needs.detect-changes.outputs.terraform
     uses: ./.github/workflows/reusable-terraform.yml
     with:
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
