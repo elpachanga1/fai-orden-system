@@ -100,4 +100,25 @@ resource "azurerm_key_vault_secret" "app_insights_connection_string" {
   depends_on = [azurerm_role_assignment.terraform_secrets_officer]
 }
 
+# ---------------------------------------------------------------
+# Private Endpoint del Key Vault
+# ---------------------------------------------------------------
+resource "azurerm_private_endpoint" "keyvault" {
+  name                = "pe-kv-${var.prefix}-${var.environment}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  subnet_id           = var.private_endpoint_subnet_id
+  tags                = var.tags
 
+  private_service_connection {
+    name                           = "psc-kv-${var.prefix}-${var.environment}"
+    private_connection_resource_id = azurerm_key_vault.main.id
+    subresource_names              = ["vault"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "dns-group-kv"
+    private_dns_zone_ids = [var.private_dns_zone_id]
+  }
+}

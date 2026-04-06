@@ -24,6 +24,11 @@ variable "tags" {
   default     = {}
 }
 
+variable "appservice_subnet_id" {
+  description = "ID de la subnet snet-appservice para VNet Integration."
+  type        = string
+}
+
 variable "key_vault_id" {
   description = "Resource ID del Key Vault. Usado para asignar el rol Key Vault Secrets User a la Managed Identity."
   type        = string
@@ -40,7 +45,7 @@ variable "storage_account_id" {
 }
 
 variable "sku_name" {
-  description = "SKU del App Service Plan. F1 (gratis) para dev, B1/S1 para produccion."
+  description = "SKU del App Service Plan. S1 es el minimo disponible en esta suscripcion (Free y Basic tienen quota 0). ~$73/mes — correr terraform destroy al terminar."
   type        = string
-  default     = "F1"
+  default     = "S1"
 }

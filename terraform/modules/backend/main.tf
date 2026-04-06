@@ -47,6 +47,9 @@ resource "azurerm_linux_web_app" "main" {
   location            = var.location
   service_plan_id     = azurerm_service_plan.main.id
 
+  # VNet Integration: trafico saliente por snet-appservice
+  virtual_network_subnet_id = var.appservice_subnet_id
+
   # Resolucion de referencias Key Vault con la Managed Identity
   key_vault_reference_identity_id = azurerm_user_assigned_identity.main.id
 

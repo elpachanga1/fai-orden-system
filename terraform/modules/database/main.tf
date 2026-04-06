@@ -24,16 +24,27 @@ resource "azurerm_postgresql_flexible_server" "main" {
   administrator_login    = var.administrator_login
   administrator_password = var.administrator_password
 
-  # En dev: acceso publico habilitado para simplificar el despliegue.
-  # En prod: usar delegated_subnet_id + private_dns_zone_id y
-  # establecer public_network_access_enabled = false.
-  public_network_access_enabled = true
+  # La subnet DEBE estar delegada a Microsoft.DBforPostgreSQL/flexibleServers
+  delegated_subnet_id = var.database_subnet_id
+
+  # La Private DNS Zone resuelve el FQDN del servidor dentro de la VNet
+  private_dns_zone_id = var.private_dns_zone_id
+
+  # Con VNet integration activa el acceso publico debe deshabilitarse
+  public_network_access_enabled = false
 
   # En dev no necesitamos backup retenido por mucho tiempo
   backup_retention_days        = 7
   geo_redundant_backup_enabled = false
 
   tags = var.tags
+
+  # Azure asigna automaticamente una zona de disponibilidad al crear el servidor.
+  # Ignorar cambios en zone para evitar el error:
+  # "zone can only be changed when exchanged with standby_availability_zone"
+  lifecycle {
+    ignore_changes = [zone]
+  }
 }
 
 # ---------------------------------------------------------------

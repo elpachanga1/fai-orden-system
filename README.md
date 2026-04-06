@@ -99,6 +99,18 @@ npm test -- --watchAll=false
 
 ---
 
+## Infraestructura en Azure
+
+La infraestructura se gestiona con Terraform y se despliega automáticamente via GitHub Actions.
+
+Para configurar el entorno por primera vez (remote state, secrets, primer apply) ver:
+**[docs/terraform-bootstrap.md](docs/terraform-bootstrap.md)**
+
+Para entender las decisiones de arquitectura (por qué App Service y no Functions, por qué no VNet en dev, etc.) ver:
+**[docs/terraform-architecture.md](docs/terraform-architecture.md)**
+
+---
+
 ## CI/CD
 
 El pipeline en GitHub Actions detecta automáticamente qué parte del código cambió y ejecuta solo el workflow correspondiente:
