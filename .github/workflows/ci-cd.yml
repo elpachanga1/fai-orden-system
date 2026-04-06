@@ -39,14 +39,14 @@ jobs:
       # push/PR: usamos el diff de paths. paths-filter sin diff retorna 'true',
       # por eso no podemos hacer fallback a filter en workflow_dispatch.
       backend: ${{
-        (github.event_name == 'workflow_dispatch' && inputs.run_backend == 'true' && 'true') ||
-        (github.event_name != 'workflow_dispatch' && steps.filter.outputs.backend) || 'false' }}
+        (github.event_name == 'workflow_dispatch' && inputs.run_backend) ||
+        (github.event_name != 'workflow_dispatch' && steps.filter.outputs.backend) }}
       frontend: ${{
-        (github.event_name == 'workflow_dispatch' && inputs.run_frontend == 'true' && 'true') ||
-        (github.event_name != 'workflow_dispatch' && steps.filter.outputs.frontend) || 'false' }}
+        (github.event_name == 'workflow_dispatch' && inputs.run_frontend) ||
+        (github.event_name != 'workflow_dispatch' && steps.filter.outputs.frontend) }}
       terraform: ${{
-        (github.event_name == 'workflow_dispatch' && inputs.run_terraform == 'true' && 'true') ||
-        (github.event_name != 'workflow_dispatch' && steps.filter.outputs.terraform) || 'false' }}
+        (github.event_name == 'workflow_dispatch' && inputs.run_terraform) ||
+        (github.event_name != 'workflow_dispatch' && steps.filter.outputs.terraform) }}
     steps:
       - uses: actions/checkout@v4
 
