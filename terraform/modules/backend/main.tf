@@ -15,8 +15,8 @@ resource "azurerm_user_assigned_identity" "main" {
 
 # ---------------------------------------------------------------
 # App Service Plan
-# Linux, SKU B1 (dev). En produccion: S2 o P1v3.
-# P1v3 tiene mejor rendimiento de VNet Integration (routing dedicado).
+# F1 (Free) para dev — sin cuota, sin VNet Integration.
+# Subir a B1/S1 en produccion para always_on y mejor rendimiento.
 # ---------------------------------------------------------------
 resource "azurerm_service_plan" "main" {
   name                = "asp-${var.prefix}-${var.environment}"
@@ -29,11 +29,6 @@ resource "azurerm_service_plan" "main" {
 
 # ---------------------------------------------------------------
 # App Service (.NET 8 API)
-#
-# VNet Integration (virtual_network_subnet_id):
-#   El trafico SALIENTE del App Service va por snet-appservice.
-#   Esto permite que el App Service alcance la DB, Blob y KV
-#   via sus Private Endpoints (IPs privadas en la VNet).
 #
 # key_vault_reference_identity_id:
 #   Indica a Azure qué Managed Identity usar para resolver las
@@ -52,9 +47,6 @@ resource "azurerm_linux_web_app" "main" {
   location            = var.location
   service_plan_id     = azurerm_service_plan.main.id
 
-  # VNet Integration: trafico saliente por snet-appservice
-  virtual_network_subnet_id = var.appservice_subnet_id
-
   # Resolucion de referencias Key Vault con la Managed Identity
   key_vault_reference_identity_id = azurerm_user_assigned_identity.main.id
 
@@ -64,7 +56,7 @@ resource "azurerm_linux_web_app" "main" {
   }
 
   site_config {
-    always_on = true # Disponible en B1+. Evita cold starts por inactividad.
+    always_on = false # F1 no soporta always_on. Subir a B1/S1 en produccion.
 
     application_stack {
       dotnet_version = "8.0"

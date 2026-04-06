@@ -24,16 +24,6 @@ variable "tags" {
   default     = {}
 }
 
-variable "private_endpoint_subnet_id" {
-  description = "ID de la subnet donde se creara el Private Endpoint del Key Vault."
-  type        = string
-}
-
-variable "private_dns_zone_id" {
-  description = "ID de la Private DNS Zone 'privatelink.vaultcore.azure.net'."
-  type        = string
-}
-
 variable "app_insights_connection_string" {
   description = "Connection string de Application Insights. Se guarda como secreto en Key Vault."
   type        = string

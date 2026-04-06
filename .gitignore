@@ -38,6 +38,8 @@ frontend/carrito-compras-react/node_modules/
 *.tfstate
 *.tfstate.backup
 *.tfvars
+*.tfplan
+tfplan
 crash.log
 override.tf
 override.tf.json

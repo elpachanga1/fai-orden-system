@@ -24,16 +24,6 @@ variable "tags" {
   default     = {}
 }
 
-variable "private_endpoint_subnet_id" {
-  description = "ID de la subnet snet-private-endpoints donde se crea el Private Endpoint del Blob."
-  type        = string
-}
-
-variable "blob_private_dns_zone_id" {
-  description = "ID de la Private DNS Zone 'privatelink.blob.core.windows.net'."
-  type        = string
-}
-
 variable "container_name" {
   description = "Nombre del container de blob donde se guardan las imagenes de productos."
   type        = string

@@ -24,13 +24,10 @@ resource "azurerm_postgresql_flexible_server" "main" {
   administrator_login    = var.administrator_login
   administrator_password = var.administrator_password
 
-  # La subnet DEBE estar delegada a Microsoft.DBforPostgreSQL/flexibleServers
-  # Definida en modules/networking/main.tf — snet-database
-  delegated_subnet_id = var.database_subnet_id
-
-  # La Private DNS Zone resuelve el FQDN del servidor dentro de la VNet.
-  # Sin esto, la app no puede conectarse al servidor por nombre.
-  private_dns_zone_id = var.private_dns_zone_id
+  # En dev: acceso publico habilitado para simplificar el despliegue.
+  # En prod: usar delegated_subnet_id + private_dns_zone_id y
+  # establecer public_network_access_enabled = false.
+  public_network_access_enabled = true
 
   # En dev no necesitamos backup retenido por mucho tiempo
   backup_retention_days        = 7
@@ -49,4 +46,13 @@ resource "azurerm_postgresql_flexible_server_database" "main" {
   server_id = azurerm_postgresql_flexible_server.main.id
   charset   = "UTF8"
   collation = "en_US.utf8"
+}
+
+# Permite conexiones desde servicios de Azure (App Service, GitHub Actions, etc.).
+# 0.0.0.0 -> 0.0.0.0 es la convencion de Azure para "Allow all Azure services".
+resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_services" {
+  name             = "AllowAzureServices"
+  server_id        = azurerm_postgresql_flexible_server.main.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
 }

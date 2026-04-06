@@ -49,27 +49,4 @@ resource "azurerm_storage_container" "product_images" {
   container_access_type = "private"
 }
 
-# ---------------------------------------------------------------
-# Private Endpoint del Blob Storage
-# Da al Storage Account una IP privada en snet-private-endpoints.
-# El trafico del App Service → Blob va por la VNet, nunca por internet.
-# ---------------------------------------------------------------
-resource "azurerm_private_endpoint" "blob" {
-  name                = "pe-blob-${var.prefix}-${var.environment}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  subnet_id           = var.private_endpoint_subnet_id
-  tags                = var.tags
 
-  private_service_connection {
-    name                           = "psc-blob-${var.prefix}-${var.environment}"
-    private_connection_resource_id = azurerm_storage_account.main.id
-    subresource_names              = ["blob"]
-    is_manual_connection           = false
-  }
-
-  private_dns_zone_group {
-    name                 = "dns-group-blob"
-    private_dns_zone_ids = [var.blob_private_dns_zone_id]
-  }
-}

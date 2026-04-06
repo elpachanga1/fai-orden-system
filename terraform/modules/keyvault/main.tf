@@ -100,30 +100,4 @@ resource "azurerm_key_vault_secret" "app_insights_connection_string" {
   depends_on = [azurerm_role_assignment.terraform_secrets_officer]
 }
 
-# ---------------------------------------------------------------
-# Private Endpoint del Key Vault
-# Da al Key Vault una IP privada dentro de la VNet (10.0.2.x).
-# En produccion (con network_acls default_action = "Deny"),
-# este es el unico camino para acceder al Key Vault.
-# La private_dns_zone_group registra automaticamente el registro
-# DNS en la zona 'privatelink.vaultcore.azure.net'.
-# ---------------------------------------------------------------
-resource "azurerm_private_endpoint" "keyvault" {
-  name                = "pe-kv-${var.prefix}-${var.environment}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  subnet_id           = var.private_endpoint_subnet_id
-  tags                = var.tags
 
-  private_service_connection {
-    name                           = "psc-kv-${var.prefix}-${var.environment}"
-    private_connection_resource_id = azurerm_key_vault.main.id
-    subresource_names              = ["vault"]
-    is_manual_connection           = false
-  }
-
-  private_dns_zone_group {
-    name                 = "dns-group-kv"
-    private_dns_zone_ids = [var.private_dns_zone_id]
-  }
-}

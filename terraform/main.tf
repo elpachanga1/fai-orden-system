@@ -38,27 +38,9 @@ module "monitoring" {
 }
 
 # ---------------------------------------------------------------
-# Modulo: Networking
-# VNet, subnets, NSGs y Private DNS Zones.
-# Este modulo no depende de monitoring — se puede crear en paralelo.
-# Sus outputs (subnet IDs, DNS zone IDs) son prerequisito para
-# los modulos de keyvault, database, storage y backend.
-# ---------------------------------------------------------------
-module "networking" {
-  source = "./modules/networking"
-
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  prefix              = var.prefix
-  environment         = var.environment
-  tags                = local.common_tags
-}
-
-# ---------------------------------------------------------------
 # Modulo: Key Vault
 # Almacena todos los secretos de la aplicacion.
-# Depende de monitoring (para guardar la connection string de AI)
-# y de networking (para el Private Endpoint y la DNS zone).
+# Acceso publico (dev). En prod: agregar private endpoint + network_acls.
 # ---------------------------------------------------------------
 module "keyvault" {
   source = "./modules/keyvault"
@@ -68,18 +50,15 @@ module "keyvault" {
   prefix                         = var.prefix
   environment                    = var.environment
   tags                           = local.common_tags
-  private_endpoint_subnet_id     = module.networking.private_endpoints_subnet_id
-  private_dns_zone_id            = module.networking.keyvault_private_dns_zone_id
   app_insights_connection_string = module.monitoring.application_insights_connection_string
   postgresql_connection_string   = local.postgresql_connection_string
   jwt_secret_key                 = var.jwt_secret_key
 }
 
 # ---------------------------------------------------------------
-# Modulo: Database (Fase 5)
-# PostgreSQL Flexible Server v16 desplegado en la subnet delegada
-# snet-database. La app se conecta por la VNet sin pasar por internet.
-# Depende de networking (subnet delegada y DNS zone de postgres).
+# Modulo: Database
+# PostgreSQL Flexible Server v16 con acceso publico (dev).
+# En prod: agregar delegated_subnet_id + private_dns_zone_id.
 # ---------------------------------------------------------------
 module "database" {
   source = "./modules/database"
@@ -89,47 +68,41 @@ module "database" {
   prefix                 = var.prefix
   environment            = var.environment
   tags                   = local.common_tags
-  database_subnet_id     = module.networking.database_subnet_id
-  private_dns_zone_id    = module.networking.postgres_private_dns_zone_id
   administrator_login    = var.postgresql_admin_username
   administrator_password = var.postgresql_admin_password
 }
 
 # ---------------------------------------------------------------
-# Modulo: Storage (Fase 6)
+# Modulo: Storage
 # Blob Storage para imagenes de productos.
 # Acceso via Managed Identity del App Service (no account keys).
 # ---------------------------------------------------------------
 module "storage" {
   source = "./modules/storage"
 
-  resource_group_name        = azurerm_resource_group.main.name
-  location                   = azurerm_resource_group.main.location
-  prefix                     = var.prefix
-  environment                = var.environment
-  tags                       = local.common_tags
-  private_endpoint_subnet_id = module.networking.private_endpoints_subnet_id
-  blob_private_dns_zone_id   = module.networking.blob_private_dns_zone_id
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  prefix              = var.prefix
+  environment         = var.environment
+  tags                = local.common_tags
 }
 
 # ---------------------------------------------------------------
-# Modulo: Backend (Fase 7)
-# App Service Plan B1 Linux + App Service .NET 8.
-# VNet Integration a snet-appservice, secretos via Key Vault refs.
-# Depende de: networking, keyvault, storage.
+# Modulo: Backend
+# App Service Plan F1 (free) + App Service .NET 8.
+# Secretos inyectados via Key Vault references.
 # ---------------------------------------------------------------
 module "backend" {
   source = "./modules/backend"
 
-  resource_group_name  = azurerm_resource_group.main.name
-  location             = azurerm_resource_group.main.location
-  prefix               = var.prefix
-  environment          = var.environment
-  tags                 = local.common_tags
-  appservice_subnet_id = module.networking.appservice_subnet_id
-  key_vault_id         = module.keyvault.key_vault_id
-  key_vault_uri        = module.keyvault.key_vault_uri
-  storage_account_id   = module.storage.storage_account_id
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  prefix              = var.prefix
+  environment         = var.environment
+  tags                = local.common_tags
+  key_vault_id        = module.keyvault.key_vault_id
+  key_vault_uri       = module.keyvault.key_vault_uri
+  storage_account_id  = module.storage.storage_account_id
 }
 
 # ---------------------------------------------------------------

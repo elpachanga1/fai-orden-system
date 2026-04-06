@@ -13,21 +13,6 @@ output "resource_group_location" {
   value       = azurerm_resource_group.main.location
 }
 
-output "networking" {
-  description = "Outputs del modulo de networking (IDs de subnets, VNet, DNS zones)."
-  value = {
-    vnet_id                      = module.networking.vnet_id
-    vnet_name                    = module.networking.vnet_name
-    apim_subnet_id               = module.networking.apim_subnet_id
-    appservice_subnet_id         = module.networking.appservice_subnet_id
-    private_endpoints_subnet_id  = module.networking.private_endpoints_subnet_id
-    database_subnet_id           = module.networking.database_subnet_id
-    postgres_private_dns_zone_id = module.networking.postgres_private_dns_zone_id
-    blob_private_dns_zone_id     = module.networking.blob_private_dns_zone_id
-    keyvault_private_dns_zone_id = module.networking.keyvault_private_dns_zone_id
-  }
-}
-
 output "key_vault_name" {
   description = "Nombre del Key Vault."
   value       = module.keyvault.key_vault_name

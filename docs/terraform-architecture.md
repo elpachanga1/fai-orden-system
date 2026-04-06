@@ -2,6 +2,208 @@
 
 Este documento explica el **por qué** detrás de cada decisión técnica en la infraestructura Terraform de este proyecto. El objetivo es que cualquier persona que lea el `terraform/` entienda la razón de cada recurso, no solo el qué.
 
+> **Estado actual**: arquitectura simplificada para entorno de desarrollo. Sin VNet, Private Endpoints ni subnets. Ver sección [Red](#red-sin-vnet-en-dev-con-vnet-en-prod) para el razonamiento.
+
+---
+
+## Base de Datos: Azure Database for PostgreSQL Flexible Server
+
+**¿Por qué no CosmosDB for PostgreSQL?**
+
+CosmosDB for PostgreSQL (anteriormente Citus) es una extensión de sharding horizontal para PostgreSQL. Está diseñada para cargas masivas que requieren distribuir datos en múltiples nodos. Este proyecto usa:
+
+- Driver `Npgsql.EFCore.PostgreSQL` — driver nativo de PostgreSQL estándar
+- EF Core con `AppDbContext` y tablas definidas (`Products`, `ShoppingCarts`, `Items`, `Users`, `Sessions`)
+- Un `pg_dump` estándar de PostgreSQL como volcado inicial
+
+**PostgreSQL Flexible Server es 100% compatible con `Npgsql` sin ningún cambio en el código.** CosmosDB for PostgreSQL requeriría adaptar queries y el modelo de datos para sharding — trabajo innecesario para una aplicación de este tamaño.
+
+**¿Cuándo tiene sentido CosmosDB for PostgreSQL?** Cuando tienes decenas de millones de filas y necesitas escalar horizontalmente escribiendo en múltiples nodos simultáneamente.
+
+---
+
+## Backend: App Service sobre Azure Functions
+
+**¿Por qué App Service y no Functions (serverless)?**
+
+El código del backend tiene dos características que son **incompatibles** con Functions en modo Consumption:
+
+**1. `InMemoryRequestRepository` como singleton**
+
+```csharp
+// Registrado como Singleton en el DI container
+services.AddSingleton<IRequestRepository, InMemoryRequestRepository>();
+```
+
+Functions Consumption destruye el proceso entre invocaciones cuando no hay tráfico. El singleton se pierde junto con el proceso. Cada invocación arrancaría con el repositorio en blanco.
+
+**2. EF Core Connection Pooling**
+
+```json
+// appsettings.json
+"ConnectionString": "...Minimum Pool Size=1;Maximum Pool Size=100;"
+```
+
+El pool de conexiones de EF Core vive en la memoria del proceso. En Functions Consumption el proceso arranca desde cero en cada cold start, el pool se reinicializa, y la primera query de cada invocación paga el costo de establecer la conexión.
+
+**¿Cuándo tiene sentido Functions?** Para lógica stateless, event-driven (procesar mensajes de una queue, responder a eventos de storage, timers). Si el backend se refactorizara eliminando el singleton y el pool gestionado manualmente, podría migrar a **Functions Premium** (que mantiene instancias calientes).
+
+**Tier elegido: F1 Free (dev), B1/S1 (staging/producción)**
+
+| Tier | Precio aprox. | Cuándo usarlo |
+|---|---|---|
+| Free F1 | $0/mes | Dev — sin SLA, sin always_on, 60 min CPU/día |
+| Basic B1 | ~$13/mes | Staging con always_on |
+| Standard S1 | ~$73/mes | Producción con auto-scaling y deployment slots |
+
+> **Nota sobre quota**: B1 pertenece al pool "Basic VMs" que en algunas suscripciones (Free Trial, Student, CSP) tiene quota 0 con límite 0, lo que genera un error 401 de Azure aunque el uso real sea 0. F1 no tiene este problema porque es un tier diferente gestionado por Microsoft sin quota de VMs.
+
+---
+
+## Red: Sin VNet en dev, con VNet en prod
+
+**¿Por qué se eliminó el módulo `networking` para dev?**
+
+La arquitectura original incluía:
+- VNet con 4 subnets (`snet-apim`, `snet-appservice`, `snet-private-endpoints`, `snet-database`)
+- NSGs por subnet
+- Private Endpoints para Key Vault, Blob Storage y PostgreSQL
+- Private DNS Zones para resolución interna
+- VNet Integration en el App Service
+
+Esto es la arquitectura correcta para **producción**. Para **dev** introduce tres problemas:
+
+1. **Quota**: la VNet Integration del App Service requiere B1 mínimo. B1 tiene quota 0 en suscripciones de prueba/educación — el apply falla con 401 antes de crear nada.
+2. **Costo**: Private Endpoints (~$7/mes c/u × 3) + NAT Gateway o VPN para acceso local desde laptop suman ~$30-50/mes solo en red.
+3. **Complejidad operativa**: con Private Endpoints y `public_network_access = false` en PostgreSQL, no podés conectarte a la BD desde tu máquina local sin un bastion host o VPN. Depurar migraciones de EF Core se vuelve complicado.
+
+**La arquitectura dev simplificada:**
+
+| Recurso | Dev | Prod (a implementar) |
+|---|---|---|
+| App Service Plan | F1 Free | B1 / S1 |
+| PostgreSQL acceso | Público (firewall Azure services) | Privado (subnet delegada) |
+| Key Vault acceso | Público (`network_acls Allow`) | Privado (Private Endpoint) |
+| Blob Storage acceso | Público | Privado (Private Endpoint) |
+| VNet / subnets | No | Sí (4 subnets) |
+| NSGs | No | Sí |
+| Private DNS Zones | No | Sí |
+
+**¿Qué seguridad queda en dev?**
+- PostgreSQL: firewall solo permite `0.0.0.0 → 0.0.0.0` (servicios de Azure) — no acepta conexiones desde IPs arbitrarias de internet
+- Key Vault: RBAC — solo la Managed Identity del App Service y quien corrió el apply tienen acceso
+- Blob Storage: `allow_nested_items_to_be_public = false` — ningún blob es público sin un SAS token
+- App Service: HTTPS obligatorio, secretos inyectados via Key Vault references
+
+**¿Cómo migrar a prod?** Restaurar el módulo `networking`, agregar `delegated_subnet_id` + `private_dns_zone_id` en database, agregar `private_endpoint_subnet_id` en keyvault y storage, y agregar `virtual_network_subnet_id` en el App Service con plan B1+.
+
+---
+
+## Private Endpoints (referencia para prod)
+
+**¿Por qué PostgreSQL, Blob Storage y Key Vault no deberían ser accesibles desde internet en producción?**
+
+Sin Private Endpoints, estos recursos tienen un endpoint público. Aunque Azure tiene controles de autenticación, la superficie de ataque es mayor: cualquier atacante en internet puede intentar autenticarse contra el endpoint.
+
+Con Private Endpoints:
+1. El recurso obtiene una IP privada dentro de tu VNet
+2. El endpoint público puede deshabilitarse completamente
+3. El tráfico nunca sale de la red de Azure — va de tu App Service al recurso por la red interna
+
+---
+
+## Private DNS Zones (referencia para prod)
+
+Cuando tu App Service hace una petición a `kv-carrito-dev-abc123.vault.azure.net`, el DNS resuelve a una IP **pública** por defecto. El Private Endpoint tiene una IP privada (`10.0.2.x`), pero nadie le dice al DNS que use esa IP.
+
+Las Private DNS Zones sobreescriben la resolución DNS dentro de tu VNet:
+
+```
+kv-carrito-dev-abc123.vault.azure.net
+  → sin Private DNS Zone: 52.x.x.x (IP pública, bloqueada)
+  → con Private DNS Zone: 10.0.2.5 (IP privada del Private Endpoint)
+```
+
+Cada zona cubre un tipo de recurso:
+- `privatelink.vaultcore.azure.net` → Key Vault
+- `privatelink.postgres.database.azure.com` → PostgreSQL
+- `privatelink.blob.core.windows.net` → Blob Storage
+
+---
+
+## Managed Identity
+
+**¿Por qué no usar un Service Principal con password?**
+
+El `appsettings.json` actual tiene el `secretKey` JWT hardcodeado. Eso implica:
+- Cualquiera con acceso al repo (o al binario) conoce el secreto
+- Si se filtra, hay que rotar manualmente en todos los entornos
+- No hay auditoría de quién usó el secreto
+
+Con **Managed Identity**:
+1. El App Service tiene una identidad asignada por Azure
+2. Se le otorga el rol `Key Vault Secrets User` sobre el Key Vault
+3. Azure rota las credenciales automáticamente
+4. Cada acceso queda registrado en el audit log del Key Vault
+
+---
+
+## Key Vault
+
+**¿Por qué centralizar secretos en Key Vault?**
+
+Un secreto en el código fuente o en `appsettings.json` es un secreto comprometido desde el momento en que alguien hace `git clone`. Key Vault resuelve:
+
+- **Centralización**: un solo lugar para todos los secretos (`jwt-secret-key`, `postgresql-connection-string`, `app-insights-connection-string`)
+- **Auditoría**: log completo de quién accedió a qué secreto y cuándo
+- **Rotación**: cambiar el secreto en Key Vault actualiza automáticamente todos los consumidores (via referencia `@Microsoft.KeyVault(SecretUri=...)` en App Service)
+- **Acceso con RBAC**: roles de Azure controlan quién puede leer/escribir secretos, no passwords compartidos
+
+---
+
+## OIDC / Federated Credentials para GitHub Actions
+
+**¿Por qué no usar un Service Principal con client_secret en GitHub Secrets?**
+
+Los SP secrets:
+- Tienen fecha de expiración (máximo 2 años en Azure AD)
+- Si se filtran en logs de CI/CD, son credenciales de larga vida
+- Requieren rotación manual
+
+Con **OIDC Federated Credentials**:
+1. GitHub Actions solicita un token JWT efímero a GitHub
+2. Azure verifica que el token viene del repo y branch correcto (sin contraseña)
+3. Se emite un access token de Azure que dura **~1 hora**
+4. No existe ninguna credencial persistente que pueda filtrarse
+
+**Bootstrap catch-22**: los secrets de OIDC (`AZURE_CLIENT_ID`, etc.) los crea el módulo `github` en el primer `terraform apply`. Por eso el primer apply debe correrse localmente. Solo a partir del segundo push el pipeline puede autenticarse con OIDC por sí solo.
+
+---
+
+## Remote State en Azure Blob Storage
+
+**¿Por qué no commitear el `.tfstate` al repositorio?**
+
+El archivo `terraform.tfstate` contiene **en texto plano**:
+- Connection strings de la base de datos
+- Claves de acceso
+- Todos los valores de outputs `sensitive`
+
+Commitear el `.tfstate` equivale a commitear todos tus secretos. Además, si dos personas corren `terraform apply` al mismo tiempo con estado local, pueden corromper la infraestructura.
+
+**Azure Blob Storage con state locking** resuelve ambos problemas:
+- El estado está cifrado en reposo (Azure Storage encryption)
+- El locking previene applies concurrentes (usando Azure Blob Leases)
+- El estado nunca pasa por el repositorio git
+
+**Autenticación del backend**: el pipeline usa `access_key` del Storage Account (secret `TF_STATE_STORAGE_KEY`) para autenticar `terraform init`. Esto es independiente de OIDC, lo que permite que el pipeline funcione antes de que exista el App Registration.
+
+---
+
+## API Management (APIM) — no implementado en dev
+
+Sin APIM, el frontend llama directamente al App Service. Para dev esto es suficiente. APIM agrega valor en producción cuando necesitás rate limiting, API versioning, políticas centralizadas de auth o routing entre múltiples backends.
+
 ---
 
 ## Base de Datos: Azure Database for PostgreSQL Flexible Server

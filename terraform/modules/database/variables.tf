@@ -24,16 +24,6 @@ variable "tags" {
   default     = {}
 }
 
-variable "database_subnet_id" {
-  description = "ID de la subnet delegada a Microsoft.DBforPostgreSQL/flexibleServers."
-  type        = string
-}
-
-variable "private_dns_zone_id" {
-  description = "ID de la Private DNS Zone 'privatelink.postgres.database.azure.com'."
-  type        = string
-}
-
 variable "administrator_login" {
   description = "Nombre de usuario administrador del servidor PostgreSQL. No puede ser 'postgres' (reservado por Azure)."
   type        = string
