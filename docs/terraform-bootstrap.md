@@ -142,7 +142,7 @@ Para no tener que setearlo en cada nueva terminal, agregarlo al perfil de PowerS
 Add-Content $PROFILE "`n`$env:GITHUB_TOKEN = `"github_pat_11A...`""
 ```
 
-> El token necesita permiso **Variables: Read and write** en el repo.
+> El token necesita permisos **Secrets: Read and write** y **Variables: Read and write** en el repo.
 > Crearlo en: GitHub → Settings → Developer settings → Fine-grained tokens
 
 ```powershell
@@ -164,33 +164,34 @@ El apply crea en orden:
 6. Container App + Azure Container Registry
 7. Static Web App (Free)
 8. App Registration en Entra ID + Federated Credentials para GitHub Actions (OIDC)
-9. **8 Variables en GitHub** (AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, REACT_APP_API_URL, AZURE_ACR_LOGIN_SERVER, AZURE_CONTAINER_APP_NAME, AZURE_RESOURCE_GROUP, TF_STATE_STORAGE_ACCOUNT)
+9. **4 Secrets en GitHub** (AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, AZURE_STATIC_WEB_APPS_API_TOKEN)
+10. **5 Variables en GitHub** (REACT_APP_API_URL, AZURE_ACR_LOGIN_SERVER, AZURE_CONTAINER_APP_NAME, AZURE_RESOURCE_GROUP, TF_STATE_STORAGE_ACCOUNT)
 
-Al finalizar el apply, correr `scripts/set-github-secrets.ps1` para crear el secret
-`AZURE_STATIC_WEB_APPS_API_TOKEN` (ver [set-github-secrets.md](set-github-secrets.md)).
+Al finalizar el apply, GitHub ya tiene todo lo que necesitan los pipelines de dotnet y react.
 
 ---
 
-## Paso 6 — Verificar los secrets en GitHub
+## Paso 6 — Crear los secrets manuales y verificar en GitHub
 
-Ir a: **GitHub → Settings → Secrets and variables → Actions**
+Antes de hacer el primer push, crear estos 4 secrets manualmente en
+**GitHub → Settings → Secrets and variables → Actions → New repository secret**:
 
-Deberías ver 8 secrets en total:
-
-| Secret | Creado por |
+| Secret | Cómo obtenerlo |
 |---|---|
-| `TF_STATE_STORAGE_ACCOUNT` | Terraform (sobreescribe el manual del Paso 2) |
-| `TF_STATE_STORAGE_KEY` | Vos manualmente — Terraform nunca lo toca |
-| `AZURE_CLIENT_ID` | Terraform (módulo oidc + github) |
-| `AZURE_TENANT_ID` | Terraform (módulo oidc + github) |
-| `AZURE_SUBSCRIPTION_ID` | Terraform (módulo oidc + github) |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Terraform (módulo github) |
-| `REACT_APP_API_URL` | Terraform (módulo github) |
-| `TF_POSTGRESQL_PASSWORD` | Manual — necesario para el pipeline de terraform |
-| `TF_JWT_SECRET_KEY` | Manual — necesario para el pipeline de terraform |
-| `TF_GITHUB_TOKEN` | Manual — necesario para el pipeline de terraform |
+| `TF_STATE_STORAGE_KEY` | Azure Portal → Storage Account → Access keys → key1 |
+| `TF_POSTGRESQL_PASSWORD` | El password elegido en `terraform.tfvars` |
+| `TF_JWT_SECRET_KEY` | El JWT secret elegido en `terraform.tfvars` |
+| `TF_GITHUB_TOKEN` | El mismo PAT usado localmente (con Secrets + Variables: Read and write) |
 
-> Los últimos tres (`TF_POSTGRESQL_PASSWORD`, `TF_JWT_SECRET_KEY`, `TF_GITHUB_TOKEN`) necesitás crearlos manualmente también — son los valores del tfvars que el pipeline necesita para el `terraform plan` de los próximos runs.
+Verificar que el `terraform apply` del Paso 5 creó los automáticos:
+
+**Secrets creados por Terraform:**
+`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_STATIC_WEB_APPS_API_TOKEN`
+
+**Variables creadas por Terraform** (pestaña Variables):
+`REACT_APP_API_URL`, `AZURE_ACR_LOGIN_SERVER`, `AZURE_CONTAINER_APP_NAME`, `AZURE_RESOURCE_GROUP`, `TF_STATE_STORAGE_ACCOUNT`
+
+Ver: [set-github-secrets.md](set-github-secrets.md) para más detalles sobre la distribución.
 
 ---
 

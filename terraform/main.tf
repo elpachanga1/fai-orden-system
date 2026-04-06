@@ -163,10 +163,12 @@ module "oidc" {
 # Ver: scripts/set-github-secrets.ps1
 
 # ---------------------------------------------------------------
-# Modulo: GitHub (Variables de Actions)
-# Crea las 8 variables de infraestructura en el repo de GitHub.
-# El secret AZURE_STATIC_WEB_APPS_API_TOKEN se gestiona via
-# scripts/set-github-secrets.ps1 (requiere cifrado libsodium).
+# Modulo: GitHub (Secrets + Variables de Actions)
+# Secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
+#          AZURE_STATIC_WEB_APPS_API_TOKEN
+# Variables: REACT_APP_API_URL, AZURE_ACR_LOGIN_SERVER,
+#            AZURE_CONTAINER_APP_NAME, AZURE_RESOURCE_GROUP,
+#            TF_STATE_STORAGE_ACCOUNT
 # ---------------------------------------------------------------
 module "github" {
   source = "./modules/github"
@@ -177,6 +179,8 @@ module "github" {
   azure_client_id       = module.oidc.client_id
   azure_tenant_id       = module.oidc.tenant_id
   azure_subscription_id = module.oidc.subscription_id
+
+  static_web_app_api_key = module.frontend.api_key
 
   backend_hostname     = module.backend.container_app_fqdn
   acr_login_server     = module.backend.acr_login_server

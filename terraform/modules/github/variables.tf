@@ -44,6 +44,12 @@ variable "resource_group" {
 }
 
 variable "tf_state_storage_account" {
-  description = "Nombre del Storage Account del remote state. Se guarda como secret TF_STATE_STORAGE_ACCOUNT en GitHub para que terraform-cd.yml pueda generar el backend.conf."
+  description = "Nombre del Storage Account del remote state. Se guarda como variable TF_STATE_STORAGE_ACCOUNT en GitHub para que terraform-cd.yml pueda generar el backend.conf."
   type        = string
+}
+
+variable "static_web_app_api_key" {
+  description = "API key del Static Web App. Se guarda como secret AZURE_STATIC_WEB_APPS_API_TOKEN en GitHub para el deploy de React."
+  type        = string
+  sensitive   = true
 }
