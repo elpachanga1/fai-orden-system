@@ -13,9 +13,9 @@ output "apim_subnet_id" {
   value       = azurerm_subnet.apim.id
 }
 
-output "appservice_subnet_id" {
-  description = "ID de la subnet para VNet Integration del App Service."
-  value       = azurerm_subnet.appservice.id
+output "containerapp_subnet_id" {
+  description = "ID de la subnet delegada al Container Apps Environment."
+  value       = azurerm_subnet.containerapp.id
 }
 
 output "private_endpoints_subnet_id" {

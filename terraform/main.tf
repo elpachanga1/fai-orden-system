@@ -107,21 +107,24 @@ module "storage" {
 
 # ---------------------------------------------------------------
 # Modulo: Backend
-# App Service Plan S1 + App Service .NET 8.
-# VNet Integration a snet-appservice, secretos via Key Vault refs.
+# Azure Container Registry + Container Apps Environment + Container App .NET 8.
+# VNet Integration via snet-containerapp (/23).
+# Secretos inyectados desde Key Vault via Managed Identity.
 # ---------------------------------------------------------------
 module "backend" {
   source = "./modules/backend"
 
-  resource_group_name  = azurerm_resource_group.main.name
-  location             = azurerm_resource_group.main.location
-  prefix               = var.prefix
-  environment          = var.environment
-  tags                 = local.common_tags
-  appservice_subnet_id = module.networking.appservice_subnet_id
-  key_vault_id         = module.keyvault.key_vault_id
-  key_vault_uri        = module.keyvault.key_vault_uri
-  storage_account_id   = module.storage.storage_account_id
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = azurerm_resource_group.main.location
+  prefix                     = var.prefix
+  environment                = var.environment
+  tags                       = local.common_tags
+  containerapp_subnet_id     = module.networking.containerapp_subnet_id
+  log_analytics_workspace_id = module.monitoring.workspace_id
+  key_vault_id               = module.keyvault.key_vault_id
+  key_vault_uri              = module.keyvault.key_vault_uri
+  storage_account_id         = module.storage.storage_account_id
+  oidc_principal_id          = module.oidc.service_principal_object_id
 }
 
 # ---------------------------------------------------------------
@@ -170,6 +173,9 @@ module "github" {
   azure_tenant_id          = module.oidc.tenant_id
   azure_subscription_id    = module.oidc.subscription_id
   static_web_app_api_key   = module.frontend.api_key
-  backend_hostname         = module.backend.web_app_default_hostname
+  backend_hostname         = module.backend.container_app_fqdn
+  acr_login_server         = module.backend.acr_login_server
+  container_app_name       = module.backend.container_app_name
+  resource_group           = azurerm_resource_group.main.name
   tf_state_storage_account = var.tf_state_storage_account
 }

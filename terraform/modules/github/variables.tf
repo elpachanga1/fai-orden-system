@@ -33,7 +33,22 @@ variable "static_web_app_api_key" {
 }
 
 variable "backend_hostname" {
-  description = "Hostname del App Service (no sensible — se usa como variable de entorno en el frontend)."
+  description = "FQDN del Container App (no sensible — se usa como variable de entorno en el frontend)."
+  type        = string
+}
+
+variable "acr_login_server" {
+  description = "Login server del Azure Container Registry (ej: acrcarritodev.azurecr.io). Usado por CI para docker push."
+  type        = string
+}
+
+variable "container_app_name" {
+  description = "Nombre del Container App. Usado por CI para az containerapp update."
+  type        = string
+}
+
+variable "resource_group" {
+  description = "Nombre del resource group principal. Usado por CI para az containerapp update."
   type        = string
 }
 

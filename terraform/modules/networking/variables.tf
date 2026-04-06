@@ -36,10 +36,10 @@ variable "subnet_apim_prefix" {
   default     = "10.0.0.0/24"
 }
 
-variable "subnet_appservice_prefix" {
-  description = "CIDR de la subnet del App Service."
+variable "subnet_containerapp_prefix" {
+  description = "CIDR de la subnet del Container Apps Environment. Minimo /23 requerido por Azure."
   type        = string
-  default     = "10.0.1.0/24"
+  default     = "10.0.4.0/23"
 }
 
 variable "subnet_private_endpoints_prefix" {

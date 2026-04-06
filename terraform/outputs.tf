@@ -18,7 +18,7 @@ output "networking" {
   value = {
     vnet_id                      = module.networking.vnet_id
     vnet_name                    = module.networking.vnet_name
-    appservice_subnet_id         = module.networking.appservice_subnet_id
+    containerapp_subnet_id       = module.networking.containerapp_subnet_id
     private_endpoints_subnet_id  = module.networking.private_endpoints_subnet_id
     database_subnet_id           = module.networking.database_subnet_id
     postgres_private_dns_zone_id = module.networking.postgres_private_dns_zone_id
@@ -67,11 +67,12 @@ output "storage" {
 }
 
 output "backend" {
-  description = "Outputs del App Service."
+  description = "Outputs del Container App."
   value = {
-    web_app_name          = module.backend.web_app_name
-    hostname              = module.backend.web_app_default_hostname
-    managed_identity_id   = module.backend.managed_identity_id
+    container_app_name         = module.backend.container_app_name
+    fqdn                       = module.backend.container_app_fqdn
+    acr_login_server           = module.backend.acr_login_server
+    managed_identity_id        = module.backend.managed_identity_id
     managed_identity_client_id = module.backend.managed_identity_client_id
   }
 }

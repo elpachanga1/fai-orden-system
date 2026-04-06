@@ -22,18 +22,19 @@ resource "azurerm_subnet" "apim" {
   address_prefixes     = [var.subnet_apim_prefix]
 }
 
-# App Service: delegada para VNet Integration (trafico saliente del App Service)
-resource "azurerm_subnet" "appservice" {
-  name                 = "snet-appservice"
+# Container Apps: delegada al entorno de Azure Container Apps
+# Requiere /23 minimo (512 IPs) para que Azure gestione la infraestructura interna
+resource "azurerm_subnet" "containerapp" {
+  name                 = "snet-containerapp"
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = [var.subnet_appservice_prefix]
+  address_prefixes     = [var.subnet_containerapp_prefix]
 
   delegation {
-    name = "app-service-delegation"
+    name = "container-app-delegation"
     service_delegation {
-      name    = "Microsoft.Web/serverFarms"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+      name    = "Microsoft.App/environments"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
     }
   }
 }
@@ -105,38 +106,10 @@ resource "azurerm_network_security_group" "apim" {
   }
 }
 
-resource "azurerm_network_security_group" "appservice" {
-  name                = "nsg-appservice-${var.environment}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  tags                = var.tags
-
-  # Solo permite HTTPS desde la subnet de APIM — el App Service no debe ser accesible directamente
-  security_rule {
-    name                       = "AllowAPIMInbound"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "443"
-    source_address_prefix      = var.subnet_apim_prefix
-    destination_address_prefix = "*"
-  }
-
-  # Deniega todo el trafico entrante que no haya sido permitido explicitamente
-  security_rule {
-    name                       = "DenyAllInbound"
-    priority                   = 4096
-    direction                  = "Inbound"
-    access                     = "Deny"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "*"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-}
+# Container Apps: Azure gestiona el trafico interno de la subnet.
+# NO se asocia este NSG a la subnet — Microsoft recomienda no restringir
+# el trafico de la subnet del Container Apps Environment para evitar
+# bloquear la comunicacion interna del plano de control de Azure.
 
 # NSG para la subnet de private endpoints
 # Azure gestiona el trafico hacia los private endpoints internamente;
@@ -180,11 +153,6 @@ resource "azurerm_network_security_group" "private_endpoints" {
 resource "azurerm_subnet_network_security_group_association" "apim" {
   subnet_id                 = azurerm_subnet.apim.id
   network_security_group_id = azurerm_network_security_group.apim.id
-}
-
-resource "azurerm_subnet_network_security_group_association" "appservice" {
-  subnet_id                 = azurerm_subnet.appservice.id
-  network_security_group_id = azurerm_network_security_group.appservice.id
 }
 
 resource "azurerm_subnet_network_security_group_association" "private_endpoints" {

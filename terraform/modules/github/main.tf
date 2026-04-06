@@ -26,20 +26,24 @@ data "github_repository" "main" {
 # ---------------------------------------------------------------
 locals {
   secrets = {
-    # OIDC auth para azure/login@v2 y azure/webapps-deploy@v3
-    "AZURE_CLIENT_ID"                   = var.azure_client_id
-    "AZURE_TENANT_ID"                   = var.azure_tenant_id
-    "AZURE_SUBSCRIPTION_ID"             = var.azure_subscription_id
+    # OIDC auth para azure/login@v2
+    "AZURE_CLIENT_ID"                 = var.azure_client_id
+    "AZURE_TENANT_ID"                 = var.azure_tenant_id
+    "AZURE_SUBSCRIPTION_ID"           = var.azure_subscription_id
 
     # Deploy del React al Static Web App
-    "AZURE_STATIC_WEB_APPS_API_TOKEN"   = var.static_web_app_api_key
+    "AZURE_STATIC_WEB_APPS_API_TOKEN" = var.static_web_app_api_key
 
     # URL del backend — inyectada en el bundle de React durante el build
-    "REACT_APP_API_URL"                 = "https://${var.backend_hostname}"
+    "REACT_APP_API_URL"               = "https://${var.backend_hostname}"
 
-    # Nombre del Storage Account del remote state — usado en terraform-cd.yml
-    # para generar backend.conf en el runner sin guardarlo en el repo
-    "TF_STATE_STORAGE_ACCOUNT"          = var.tf_state_storage_account
+    # Container Registry y Container App para el pipeline de CI del backend
+    "AZURE_ACR_LOGIN_SERVER"          = var.acr_login_server
+    "AZURE_CONTAINER_APP_NAME"        = var.container_app_name
+    "AZURE_RESOURCE_GROUP"            = var.resource_group
+
+    # Nombre del Storage Account del remote state
+    "TF_STATE_STORAGE_ACCOUNT"        = var.tf_state_storage_account
   }
 }
 

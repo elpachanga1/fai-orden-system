@@ -1,5 +1,5 @@
 variable "resource_group_name" {
-  description = "Nombre del resource group donde se creara el App Service."
+  description = "Nombre del resource group donde se crearan los recursos del backend."
   type        = string
 }
 
@@ -24,8 +24,13 @@ variable "tags" {
   default     = {}
 }
 
-variable "appservice_subnet_id" {
-  description = "ID de la subnet snet-appservice para VNet Integration."
+variable "containerapp_subnet_id" {
+  description = "ID de la subnet snet-containerapp (/23) para el Container Apps Environment."
+  type        = string
+}
+
+variable "log_analytics_workspace_id" {
+  description = "Resource ID del Log Analytics Workspace. Requerido por el Container Apps Environment."
   type        = string
 }
 
@@ -35,7 +40,7 @@ variable "key_vault_id" {
 }
 
 variable "key_vault_uri" {
-  description = "URI del Key Vault (ej: https://kv-name.vault.azure.net/). Usado para construir las referencias @Microsoft.KeyVault(...) en app_settings."
+  description = "URI del Key Vault (ej: https://kv-name.vault.azure.net/). Usado para construir los key_vault_secret_id de los Container App secrets."
   type        = string
 }
 
@@ -44,8 +49,7 @@ variable "storage_account_id" {
   type        = string
 }
 
-variable "sku_name" {
-  description = "SKU del App Service Plan. S1 es el minimo disponible en esta suscripcion (Free y Basic tienen quota 0). ~$73/mes — correr terraform destroy al terminar."
+variable "oidc_principal_id" {
+  description = "Object ID del App Registration de GitHub Actions OIDC. Necesita AcrPush para subir imagenes desde CI."
   type        = string
-  default     = "S1"
 }

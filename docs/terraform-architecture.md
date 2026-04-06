@@ -2,7 +2,72 @@
 
 Este documento explica el **por qué** detrás de cada decisión técnica en la infraestructura Terraform de este proyecto. El objetivo es que cualquier persona que lea el `terraform/` entienda la razón de cada recurso, no solo el qué.
 
-> **Estado actual**: arquitectura simplificada para entorno de desarrollo. Sin VNet, Private Endpoints ni subnets. Ver sección [Red](#red-sin-vnet-en-dev-con-vnet-en-prod) para el razonamiento.
+> **Estado actual**: VNet restaurada. Backend migrado de App Service a Container Apps por cuota de VMs = 0 en la suscripción. Ver sección [Backend](#backend-container-apps-después-de-app-service) para el razonamiento.
+
+---
+
+## Análisis de Costos: App Service vs Container Apps
+
+La migración a Container Apps no solo resolvió el problema de quota — también reduce el costo operativo en todos los escenarios.
+
+### Por qué App Service cobra aunque nadie use la app
+
+App Service reserva una VM dedicada que corre **24/7** independientemente del tráfico. Pagás por el tiempo encendido, no por el uso real. En una suscripción sin quota esto era irrelevante porque directamente no se podía crear — pero en una suscripción normal los costos serían:
+
+| Tier | Precio | Nota |
+|---|---|---|
+| F1 Free | $0/mes | 60 min CPU/día, sin SLA, sin always_on |
+| B1 Basic | ~$13/mes | always_on, mínimo viable para staging |
+| S1 Standard | ~$73/mes | auto-scaling, deployment slots |
+
+### Cómo cobra Container Apps
+
+Dos componentes:
+
+**ACR Basic**: $5/mes fijo — almacena las imágenes Docker.
+
+**Container App**: consumo puro con free tier mensual incluido:
+- vCPU: $0.000024 / vCPU-segundo activo
+- Memoria: $0.000003 / GiB-segundo activo
+- Free tier: 180,000 vCPU-segundos + 360,000 GiB-segundos por mes
+
+Con `min_replicas = 0`, cuando no hay tráfico el Container App baja a cero réplicas → **$0 de cómputo**.
+
+### Simulación para dev (uso esporádico, ~4 horas/día)
+
+```
+0.25 vCPU × 4hs × 3600s × 30 días = 108,000 vCPU-segundos
+Free tier mensual:                   180,000 vCPU-segundos
+                                     ─────────────────────
+Cómputo adicional:                   $0 (dentro del free tier)
+
+Total dev: ~$5/mes (solo ACR)
+```
+
+### Simulación para prod (24/7 con tráfico constante)
+
+```
+vCPU:    0.25 × 86,400s × 30 días = 648,000 vCPU-seg
+         Free tier:                  180,000 vCPU-seg
+         Exceso: 468,000 × $0.000024 = ~$11/mes
+
+Memoria: 0.5Gi × 86,400s × 30 días = 1,296,000 GiB-seg
+         Free tier:                    360,000 GiB-seg
+         Exceso: 936,000 × $0.000003 = ~$2.8/mes
+
+Total prod 24/7: ~$19/mes  (ACR $5 + cómputo $14)
+```
+
+### Comparativa final
+
+| Escenario | App Service S1 | Container Apps |
+|---|---|---|
+| Dev uso esporádico | $73/mes (si hubiera quota) | **~$5/mes** |
+| Prod 24/7 | $73/mes | **~$19/mes** |
+| Sin tráfico (noche/finde) | $73/mes igual | **$0 cómputo** |
+| Quota requerida | Standard VMs (= 0 en esta suscripción) | Ninguna |
+
+Container Apps es más barato en todos los escenarios. La única adición fija es el ACR Basic ($5/mes), que también sería necesario si en algún momento se usara App Service con contenedores.
 
 ---
 
@@ -22,11 +87,11 @@ CosmosDB for PostgreSQL (anteriormente Citus) es una extensión de sharding hori
 
 ---
 
-## Backend: App Service sobre Azure Functions
+## Backend: Container Apps (después de App Service)
 
-**¿Por qué App Service y no Functions (serverless)?**
+### Por qué empezamos con App Service
 
-El código del backend tiene dos características que son **incompatibles** con Functions en modo Consumption:
+El código del backend tiene dos características que son **incompatibles** con Azure Functions en modo Consumption:
 
 **1. `InMemoryRequestRepository` como singleton**
 
@@ -44,58 +109,109 @@ Functions Consumption destruye el proceso entre invocaciones cuando no hay tráf
 "ConnectionString": "...Minimum Pool Size=1;Maximum Pool Size=100;"
 ```
 
-El pool de conexiones de EF Core vive en la memoria del proceso. En Functions Consumption el proceso arranca desde cero en cada cold start, el pool se reinicializa, y la primera query de cada invocación paga el costo de establecer la conexión.
+El pool de conexiones vive en memoria del proceso. En Functions Consumption el proceso arranca desde cero en cada cold start.
 
-**¿Cuándo tiene sentido Functions?** Para lógica stateless, event-driven (procesar mensajes de una queue, responder a eventos de storage, timers). Si el backend se refactorizara eliminando el singleton y el pool gestionado manualmente, podría migrar a **Functions Premium** (que mantiene instancias calientes).
-
-**Tier elegido: F1 Free (dev), B1/S1 (staging/producción)**
-
-| Tier | Precio aprox. | Cuándo usarlo |
-|---|---|---|
-| Free F1 | $0/mes | Dev — sin SLA, sin always_on, 60 min CPU/día |
-| Basic B1 | ~$13/mes | Staging con always_on |
-| Standard S1 | ~$73/mes | Producción con auto-scaling y deployment slots |
-
-> **Nota sobre quota**: B1 pertenece al pool "Basic VMs" que en algunas suscripciones (Free Trial, Student, CSP) tiene quota 0 con límite 0, lo que genera un error 401 de Azure aunque el uso real sea 0. F1 no tiene este problema porque es un tier diferente gestionado por Microsoft sin quota de VMs.
+App Service era la alternativa natural: proceso persistente, pool de conexiones estable, compatible con el singleton.
 
 ---
 
-## Red: Sin VNet en dev, con VNet en prod
+### Por qué App Service no funcionó: quota de VMs = 0
 
-**¿Por qué se eliminó el módulo `networking` para dev?**
+Durante el primer `terraform apply` se descubrió que **ningún tier de App Service tiene cuota en esta suscripción**:
 
-La arquitectura original incluía:
-- VNet con 4 subnets (`snet-apim`, `snet-appservice`, `snet-private-endpoints`, `snet-database`)
-- NSGs por subnet
-- Private Endpoints para Key Vault, Blob Storage y PostgreSQL
-- Private DNS Zones para resolución interna
-- VNet Integration en el App Service
+```
+Error: creating App Service Plan...
+Current Limit (Free VMs): 0        ← F1 fallaba
+Current Limit (Basic VMs): 0       ← B1 fallaba
+Current Limit (Standard VMs): 0    ← S1 fallaba
+Current Limit (PremiumV2 VMs): 0   ← P1v2 fallaba
+Current Limit (PremiumV3 VMs): 0   ← P1v3 fallaba
+```
 
-Esto es la arquitectura correcta para **producción**. Para **dev** introduce tres problemas:
+Esto ocurre en suscripciones de tipo **Free Trial, Student o CSP** — Azure no asigna cuota de VMs automáticamente. El proceso para solicitarlo tarda entre 30 minutos y 2 días hábiles, lo que bloquea el desarrollo.
 
-1. **Quota**: la VNet Integration del App Service requiere B1 mínimo. B1 tiene quota 0 en suscripciones de prueba/educación — el apply falla con 401 antes de crear nada.
-2. **Costo**: Private Endpoints (~$7/mes c/u × 3) + NAT Gateway o VPN para acceso local desde laptop suman ~$30-50/mes solo en red.
-3. **Complejidad operativa**: con Private Endpoints y `public_network_access = false` en PostgreSQL, no podés conectarte a la BD desde tu máquina local sin un bastion host o VPN. Depurar migraciones de EF Core se vuelve complicado.
+Lo curioso del mensaje de error: dice _"Amount required: 0"_ porque Azure usa un template de mensaje que no resuelve el parámetro correctamente, pero el fallo real es `Current Limit = 0`.
 
-**La arquitectura dev simplificada:**
+---
 
-| Recurso | Dev | Prod (a implementar) |
+### Por qué se eligió Container Apps y no solicitar la cuota
+
+**Azure Container Apps** usa un modelo de consumo serverless diferente al de App Service: no reserva VMs dedicadas, no consume de ninguna cuota de `*VMs`, y está disponible en cualquier tipo de suscripción.
+
+Además resuelve los dos problemas originales de Functions:
+
+| Problema | Functions Consumption | App Service | Container Apps |
+|---|---|---|---|
+| Singleton en memoria | ❌ proceso destruido | ✅ proceso persistente | ✅ `min_replicas = 0` pero el proceso persiste mientras hay tráfico |
+| Connection pool EF Core | ❌ cold start reinicia pool | ✅ pool estable | ✅ pool estable |
+| Cuota de VMs | N/A | ❌ quota = 0 | ✅ sin cuota de VMs |
+| Precio dev (0 tráfico) | ~$0 | ~$0 (F1) o ~$13+ (B1+) | ~$0 (scale to 0) |
+
+**`min_replicas = 0`**: Container Apps puede bajar a cero réplicas cuando no hay tráfico (igual que Functions), pero cuando escala a 1 réplica el proceso es continuo — el singleton y el pool no se pierden entre requests.
+
+---
+
+### Qué cambió arquitectónicamente
+
+**Antes (App Service)**:
+- `azurerm_service_plan` (SKU configurable) + `azurerm_linux_web_app`
+- Secretos inyectados como `@Microsoft.KeyVault(SecretUri=...)` en `app_settings`
+- VNet Integration vía `snet-appservice` (delegación `Microsoft.Web/serverFarms`, `/24`)
+- Deploy: `dotnet publish` → artefacto ZIP → `azure/webapps-deploy@v3`
+
+**Ahora (Container Apps)**:
+- `azurerm_container_registry` (Basic) + `azurerm_container_app_environment` + `azurerm_container_app`
+- Secretos inyectados como `secret { key_vault_secret_id = ... }` bloques nativos de Container Apps
+- VNet Integration vía `snet-containerapp` (delegación `Microsoft.App/environments`, `/23` mínimo)
+- Deploy: `az acr build` (imagen Docker) → `az containerapp update` (nueva revisión)
+
+**Nuevos recursos creados por Terraform**:
+- ACR `acrcarritodev<suffix>` — registry de imágenes Docker
+- Container Apps Environment `cae-carrito-dev` — entorno compartido (Log Analytics integrado)
+- Container App `ca-carrito-dev` — la API, con `cpu=0.25`, `memory=0.5Gi`, `min_replicas=0`
+- RBAC `AcrPull` para la Managed Identity del Container App
+- RBAC `AcrPush` para el SP de GitHub Actions OIDC
+
+**Nuevos secrets en GitHub** (creados automáticamente por el módulo `github`):
+- `AZURE_ACR_LOGIN_SERVER` — para `az acr build`
+- `AZURE_CONTAINER_APP_NAME` — para `az containerapp update`
+- `AZURE_RESOURCE_GROUP` — contexto del resource group
+
+---
+
+### Imagen inicial (placeholder)
+
+Terraform crea el Container App con `mcr.microsoft.com/dotnet/samples:aspnetapp` como imagen inicial. Esta imagen de ejemplo responde en el puerto 8080 y sirve como smoke test de que el entorno funciona antes del primer build real. El primer `git push` a `main` la reemplaza con la imagen del proyecto.
+
+---
+
+## Red: VNet con subnets (dev y prod)
+
+**Historial**: la VNet se quitó temporalmente cuando se intentó simplificar el entorno dev para evitar el error de quota de App Service. Una vez migrado a Container Apps (que no tiene restricciones de quota), se restauró la VNet porque Container Apps la soporta nativamente y la integración de red es necesaria para que PostgreSQL funcione en modo privado.
+
+**Arquitectura de subnets actual**:
+
+| Subnet | CIDR | Delegación | Propósito |
+|---|---|---|---|
+| `snet-apim` | `/24` | — | Reservada para API Management futuro |
+| `snet-containerapp` | `/23` | `Microsoft.App/environments` | Container Apps Environment — requiere `/23` mínimo (512 IPs para infraestructura interna de Azure) |
+| `snet-private-endpoints` | `/24` | — | Private Endpoints de Key Vault y Blob Storage |
+| `snet-database` | `/24` | `Microsoft.DBforPostgreSQL/flexibleServers` | PostgreSQL Flexible Server |
+
+**¿Por qué `/23` para Container Apps?**
+
+Azure reserva un bloque grande de IPs para la infraestructura interna del Container Apps Environment (nodos de control, proxies, DNS interno). Si la subnet es menor a `/23`, el apply falla con "subnet too small".
+
+**Tabla de seguridad por entorno**:
+
+| Recurso | Dev (actual) | Prod (a implementar) |
 |---|---|---|
-| App Service Plan | F1 Free | B1 / S1 |
-| PostgreSQL acceso | Público (firewall Azure services) | Privado (subnet delegada) |
-| Key Vault acceso | Público (`network_acls Allow`) | Privado (Private Endpoint) |
-| Blob Storage acceso | Público | Privado (Private Endpoint) |
-| VNet / subnets | No | Sí (4 subnets) |
-| NSGs | No | Sí |
-| Private DNS Zones | No | Sí |
-
-**¿Qué seguridad queda en dev?**
-- PostgreSQL: firewall solo permite `0.0.0.0 → 0.0.0.0` (servicios de Azure) — no acepta conexiones desde IPs arbitrarias de internet
-- Key Vault: RBAC — solo la Managed Identity del App Service y quien corrió el apply tienen acceso
-- Blob Storage: `allow_nested_items_to_be_public = false` — ningún blob es público sin un SAS token
-- App Service: HTTPS obligatorio, secretos inyectados via Key Vault references
-
-**¿Cómo migrar a prod?** Restaurar el módulo `networking`, agregar `delegated_subnet_id` + `private_dns_zone_id` en database, agregar `private_endpoint_subnet_id` en keyvault y storage, y agregar `virtual_network_subnet_id` en el App Service con plan B1+.
+| Container App | Ingress externo habilitado | Ingress externo habilitado |
+| PostgreSQL acceso | Público (firewall Azure services) + subnet delegada | Solo subnet delegada |
+| Key Vault acceso | Público (`network_acls Allow`) + Private Endpoint | Solo Private Endpoint |
+| Blob Storage acceso | Público + Private Endpoint | Solo Private Endpoint |
+| NSGs | Sí (APIM + private endpoints) | Sí |
+| Private DNS Zones | Sí | Sí |
 
 ---
 
