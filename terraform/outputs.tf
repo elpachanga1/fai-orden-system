@@ -91,13 +91,18 @@ output "frontend_api_key" {
   sensitive   = true
 }
 
-output "github_actions_secrets" {
-  description = "Nombres de los secrets creados en el repositorio de GitHub."
-  value       = module.github.secrets_created
+output "oidc_client_id" {
+  description = "Client ID del App Registration de GitHub Actions."
+  value       = module.oidc.client_id
 }
 
-output "oidc_client_id" {
-  description = "Client ID del App Registration de GitHub Actions. Tambien disponible como secret AZURE_CLIENT_ID en el repo."
-  value       = module.oidc.client_id
+output "oidc_tenant_id" {
+  description = "Tenant ID de Azure AD."
+  value       = module.oidc.tenant_id
+}
+
+output "oidc_subscription_id" {
+  description = "Subscription ID de Azure."
+  value       = module.oidc.subscription_id
 }
 

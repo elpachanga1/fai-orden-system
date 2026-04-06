@@ -159,23 +159,5 @@ module "oidc" {
   github_branch     = var.github_branch
 }
 
-# ---------------------------------------------------------------
-# Modulo: GitHub (Fase 10)
-# Crea los 5 secrets que necesitan los workflows de GitHub Actions.
-# Depende de: oidc (client_id), frontend (api_key), backend (hostname).
-# ---------------------------------------------------------------
-module "github" {
-  source = "./modules/github"
-
-  github_org               = var.github_org
-  github_repo              = var.github_repo
-  azure_client_id          = module.oidc.client_id
-  azure_tenant_id          = module.oidc.tenant_id
-  azure_subscription_id    = module.oidc.subscription_id
-  static_web_app_api_key   = module.frontend.api_key
-  backend_hostname         = module.backend.container_app_fqdn
-  acr_login_server         = module.backend.acr_login_server
-  container_app_name       = module.backend.container_app_name
-  resource_group           = azurerm_resource_group.main.name
-  tf_state_storage_account = var.tf_state_storage_account
-}
+# Nota: los GitHub Actions secrets se crean via script post-apply.
+# Ver: scripts/set-github-secrets.ps1

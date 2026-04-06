@@ -55,12 +55,6 @@ variable "jwt_secret_key" {
   sensitive   = true
 }
 
-variable "github_token" {
-  description = "Personal Access Token (PAT) de GitHub con permisos repo y workflow. Pasar como TF_VAR_github_token."
-  type        = string
-  sensitive   = true
-}
-
 variable "github_org" {
   description = "Nombre del usuario u organizacion de GitHub (ej: elpachanga1)."
   type        = string
