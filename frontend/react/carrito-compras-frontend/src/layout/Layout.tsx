@@ -10,14 +10,17 @@ export const Layout = () => {
   const [showPopper, setShowPopper] = useState<boolean>(false);
   let location = useLocation();
   const navigate = useNavigate();
+
   useEffect(() => {
     const rawToken = getToken();
     setToken(rawToken);
   }, [location]);
+
   const logout = () => {
     localStorage.removeItem("userLogged");
     navigate("/login");
   };
+
   return (
     <div>
       {/* <ul>

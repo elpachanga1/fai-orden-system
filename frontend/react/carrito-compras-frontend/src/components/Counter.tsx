@@ -1,4 +1,7 @@
 import { FunctionComponent, useState } from "react";
+
+const svgUrl = (name: string) => `${process.env.PUBLIC_URL}/svg/${name}.svg`;
+
 interface Props {
   removeProductCallback: (productId: number) => void;
   handleUpdateQuantity: (productId: number, quantity: number) => void;
@@ -18,8 +21,7 @@ export const Counter: FunctionComponent<Props> = ({
       const updatedValue = prevState - 1;
       if (updatedValue === 0) {
         removeProductCallback(productId);
-      }else{
-
+      } else {
         handleUpdateQuantity(productId, updatedValue);
       }
       return updatedValue;
@@ -39,14 +41,14 @@ export const Counter: FunctionComponent<Props> = ({
       {value === 1 ? (
         <img
           className="counter-button"
-          src={process.env.PUBLIC_URL + "/svg/trash.svg"}
+          src={svgUrl("trash")}
           alt="Remove item"
           onClick={reduce}
         />
       ) : (
         <img
           className="counter-button"
-          src={process.env.PUBLIC_URL + "/svg/remove-circle.svg"}
+          src={svgUrl("remove-circle")}
           alt="Decrease quantity"
           onClick={reduce}
         />
@@ -55,7 +57,7 @@ export const Counter: FunctionComponent<Props> = ({
       <span className="counter-label">{value}</span>
       <img
         className="counter-button"
-        src={process.env.PUBLIC_URL + "/svg/add-circle.svg"}
+        src={svgUrl("add-circle")}
         alt="Increase quantity"
         onClick={increase}
       />
