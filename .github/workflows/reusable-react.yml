@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 env:
-  WORKING_DIR: frontend/react/carrito-compras-frontend
+  WORKING_DIR: frontend/carrito-compras-react
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:

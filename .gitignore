@@ -30,5 +30,5 @@ backend-dotnet/tests/Validations.Tests/obj/
 *.dump
 
 
-frontend/react/carrito-compras-frontend/build/
-frontend/react/carrito-compras-frontend/node_modules/
+frontend/carrito-compras-react/build/
+frontend/carrito-compras-react/node_modules/
