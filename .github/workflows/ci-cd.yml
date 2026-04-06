@@ -86,7 +86,7 @@ jobs:
   dotnet:
     needs: [detect-changes, terraform]
     if: |
-      always() && needs.detect-changes.outputs.backend == 'true' &&
+      needs.detect-changes.outputs.backend == 'true' &&
       (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
     uses: ./.github/workflows/reusable-dotnet.yml
     with:
@@ -97,7 +97,7 @@ jobs:
   react:
     needs: [detect-changes, terraform]
     if: |
-      always() && needs.detect-changes.outputs.frontend == 'true' &&
+      needs.detect-changes.outputs.frontend == 'true' &&
       (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
     uses: ./.github/workflows/reusable-react.yml
     with:
@@ -112,6 +112,8 @@ jobs:
     steps:
       - name: Log needs context
         run: |
+          echo "event_name            = ${{ github.event_name }}"
+          echo "inputs                = ${{ toJSON(inputs) }}"
           echo "detect-changes.outputs = ${{ toJSON(needs.detect-changes.outputs) }}"
           echo "terraform             = ${{ toJSON(needs.terraform) }}"
 
