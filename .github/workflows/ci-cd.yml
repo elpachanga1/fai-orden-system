@@ -38,9 +38,15 @@ jobs:
       # workflow_dispatch: usamos inputs explícitamente (true/false).
       # push/PR: usamos el diff de paths. paths-filter sin diff retorna 'true',
       # por eso no podemos hacer fallback a filter en workflow_dispatch.
-      backend: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_backend && 'true') || (github.event_name != 'workflow_dispatch' && steps.filter.outputs.backend) || 'false' }}
-      frontend: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_frontend && 'true') || (github.event_name != 'workflow_dispatch' && steps.filter.outputs.frontend) || 'false' }}
-      terraform: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_terraform && 'true') || (github.event_name != 'workflow_dispatch' && steps.filter.outputs.terraform) || 'false' }}
+      backend: ${{
+        (github.event_name == 'workflow_dispatch' && inputs.run_backend && 'true') ||
+        (github.event_name != 'workflow_dispatch' && steps.filter.outputs.backend) || 'false' }}
+      frontend: ${{
+        (github.event_name == 'workflow_dispatch' && inputs.run_frontend && 'true') ||
+        (github.event_name != 'workflow_dispatch' && steps.filter.outputs.frontend) || 'false' }}
+      terraform: ${{
+        (github.event_name == 'workflow_dispatch' && inputs.run_terraform && 'true') ||
+        (github.event_name != 'workflow_dispatch' && steps.filter.outputs.terraform) || 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -65,11 +71,13 @@ jobs:
   # build + test siempre; deploy solo en push a main
   # needs: terraform garantiza que si hubo cambios de infra, el apply termine
   # antes de que el App Service reciba codigo nuevo.
-  # Si terraform fue skipped (sin cambios de infra), GitHub lo trata como passed
-  # y dotnet corre igual sin esperar nada.
+  # result == 'skipped' permite que dotnet corra cuando terraform no fue seleccionado
+  # en workflow_dispatch o cuando no hubo cambios de terraform.
   dotnet:
     needs: [detect-changes, terraform]
-    if: needs.detect-changes.outputs.backend == 'true'
+    if: |
+      needs.detect-changes.outputs.backend == 'true' &&
+      (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
     uses: ./.github/workflows/reusable-dotnet.yml
     with:
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -78,7 +86,9 @@ jobs:
   # Mismo razonamiento que dotnet: espera a terraform si hubo cambios de infra.
   react:
     needs: [detect-changes, terraform]
-    if: needs.detect-changes.outputs.frontend == 'true'
+    if: |
+      needs.detect-changes.outputs.frontend == 'true' &&
+      (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
     uses: ./.github/workflows/reusable-react.yml
     with:
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
