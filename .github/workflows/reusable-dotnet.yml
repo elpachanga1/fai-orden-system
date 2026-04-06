@@ -60,14 +60,14 @@ jobs:
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Build and push image to ACR
         run: |
           az acr build \
-            --registry ${{ secrets.AZURE_ACR_LOGIN_SERVER }} \
+            --registry ${{ vars.AZURE_ACR_LOGIN_SERVER }} \
             --image backend:${{ github.sha }} \
             --image backend:latest \
             --file backend-dotnet/src/CarritoComprasBackend/Dockerfile \
@@ -76,7 +76,7 @@ jobs:
       - name: Update Container App
         run: |
           az containerapp update \
-            --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/backend:${{ github.sha }}
+            --name ${{ vars.AZURE_CONTAINER_APP_NAME }} \
+            --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
+            --image ${{ vars.AZURE_ACR_LOGIN_SERVER }}/backend:${{ github.sha }}
 

@@ -56,13 +56,6 @@ jobs:
     uses: ./.github/workflows/reusable-dotnet.yml
     with:
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_ACR_LOGIN_SERVER: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
-      AZURE_CONTAINER_APP_NAME: ${{ secrets.AZURE_CONTAINER_APP_NAME }}
-      AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
 
   # build + test siempre; deploy solo en push a main
   # Mismo razonamiento que dotnet: espera a terraform si hubo cambios de infra.
@@ -74,7 +67,6 @@ jobs:
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     secrets:
       AZURE_STATIC_WEB_APPS_API_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-      REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
 
   # plan siempre; apply solo en push a main (con aprobacion del environment 'production')
   terraform:
@@ -87,7 +79,6 @@ jobs:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      TF_STATE_STORAGE_ACCOUNT: ${{ secrets.TF_STATE_STORAGE_ACCOUNT }}
       TF_STATE_STORAGE_KEY: ${{ secrets.TF_STATE_STORAGE_KEY }}
       TF_POSTGRESQL_PASSWORD: ${{ secrets.TF_POSTGRESQL_PASSWORD }}
       TF_JWT_SECRET_KEY: ${{ secrets.TF_JWT_SECRET_KEY }}

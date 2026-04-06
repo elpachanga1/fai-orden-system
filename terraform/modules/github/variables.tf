@@ -11,25 +11,16 @@ variable "github_repo" {
 variable "azure_client_id" {
   description = "Client ID del App Registration creado por el modulo oidc."
   type        = string
-  sensitive   = true
 }
 
 variable "azure_tenant_id" {
   description = "Tenant ID de Azure AD."
   type        = string
-  sensitive   = true
 }
 
 variable "azure_subscription_id" {
   description = "Subscription ID de Azure."
   type        = string
-  sensitive   = true
-}
-
-variable "static_web_app_api_key" {
-  description = "API key del Static Web App para deploy desde GitHub Actions."
-  type        = string
-  sensitive   = true
 }
 
 variable "backend_hostname" {

@@ -129,11 +129,27 @@ terraform validate
 
 ## Paso 5 — Plan y Apply (primer deploy)
 
+El módulo `github` de Terraform necesita autenticarse con la API de GitHub para crear
+las Variables de Actions. Antes de correr el plan, setear la variable de entorno:
+
+```powershell
+$env:GITHUB_TOKEN = "github_pat_11A..."   # tu TF_GITHUB_TOKEN
+```
+
+Para no tener que setearlo en cada nueva terminal, agregarlo al perfil de PowerShell:
+
+```powershell
+Add-Content $PROFILE "`n`$env:GITHUB_TOKEN = `"github_pat_11A...`""
+```
+
+> El token necesita permiso **Variables: Read and write** en el repo.
+> Crearlo en: GitHub → Settings → Developer settings → Fine-grained tokens
+
 ```powershell
 terraform plan -out=tfplan
 ```
 
-El plan tarda entre 5 y 15 minutos en el primer run (el provider azurerm hace muchas llamadas a la API de Azure para calcular el estado). Al terminar muestra los recursos a crear — revisá que no haya nada inesperado.
+El plan tarda entre 5 y 15 minutos en el primer run. Al terminar, revisá que no haya nada inesperado.
 
 ```powershell
 terraform apply tfplan
@@ -145,12 +161,13 @@ El apply crea en orden:
 3. Key Vault con los 3 secretos (connection string, JWT key, App Insights key)
 4. PostgreSQL Flexible Server + base de datos `carrito_compras`
 5. Storage Account + container `product-images`
-6. App Service Plan F1 + App Service .NET 8 con referencias al Key Vault
+6. Container App + Azure Container Registry
 7. Static Web App (Free)
 8. App Registration en Entra ID + Federated Credentials para GitHub Actions (OIDC)
-9. **6 secrets en GitHub** (AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, AZURE_STATIC_WEB_APPS_API_TOKEN, REACT_APP_API_URL, TF_STATE_STORAGE_ACCOUNT)
+9. **8 Variables en GitHub** (AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, REACT_APP_API_URL, AZURE_ACR_LOGIN_SERVER, AZURE_CONTAINER_APP_NAME, AZURE_RESOURCE_GROUP, TF_STATE_STORAGE_ACCOUNT)
 
-Al finalizar el apply, el pipeline de GitHub Actions ya tiene todo lo que necesita para correr de forma autónoma.
+Al finalizar el apply, correr `scripts/set-github-secrets.ps1` para crear el secret
+`AZURE_STATIC_WEB_APPS_API_TOKEN` (ver [set-github-secrets.md](set-github-secrets.md)).
 
 ---
 

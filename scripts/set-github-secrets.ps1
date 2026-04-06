@@ -1,9 +1,14 @@
 <#
 .SYNOPSIS
-    Crea los GitHub Actions secrets leyendo los outputs de Terraform.
+    Crea el secret AZURE_STATIC_WEB_APPS_API_TOKEN en GitHub Actions.
 
 .DESCRIPTION
-    Usa un helper .NET temporal (Sodium.Core) para cifrar con libsodium.
+    Lee el API key del Static Web App desde terraform output y lo cifra
+    con libsodium (Sodium.Core) antes de enviarlo a la API de GitHub.
+
+    Los otros valores de infraestructura (AZURE_CLIENT_ID, REACT_APP_API_URL, etc.)
+    los crea automaticamente el modulo Terraform "github" como Variables de Actions.
+
     Requiere .NET SDK 8+ y haber corrido "terraform apply" antes.
 
 .PARAMETER GithubToken
@@ -12,16 +17,9 @@
 .PARAMETER Repo
     Repositorio en formato "org/repo". Default: elpachanga1/fai-orden-system
 
-.PARAMETER TfStateStorageAccount
-    Nombre del Storage Account del remote state. Si se omite, se lee automaticamente
-    de terraform/backend.conf (campo storage_account_name).
-
 .EXAMPLE
     cd C:\Code\fai-orden-system
     .\scripts\set-github-secrets.ps1 -GithubToken "github_pat_11A..."
-
-.EXAMPLE
-    .\scripts\set-github-secrets.ps1 -GithubToken "github_pat_11A..." -TfStateStorageAccount "sttfstatek1pnqer3"
 #>
 
 param(
@@ -29,17 +27,14 @@ param(
     [string]$GithubToken,
 
     [Parameter(Mandatory = $false)]
-    [string]$Repo = "elpachanga1/fai-orden-system",
-
-    [Parameter(Mandatory = $false)]
-    [string]$TfStateStorageAccount = ""
+    [string]$Repo = "elpachanga1/fai-orden-system"
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # ---------------------------------------------------------------
-# 1. Leer outputs de Terraform
+# 1. Leer frontend_api_key de Terraform
 # ---------------------------------------------------------------
 Write-Host "Leyendo outputs de Terraform..." -ForegroundColor Cyan
 
@@ -53,41 +48,14 @@ if ($tfExit -ne 0) {
 }
 
 $tf = ($tfOutputRaw -join "`n") | ConvertFrom-Json
+$staticWebAppToken = $tf.frontend_api_key.value
 
-$azureClientId       = $tf.oidc_client_id.value
-$azureTenantId       = $tf.oidc_tenant_id.value
-$azureSubscriptionId = $tf.oidc_subscription_id.value
-$staticWebAppToken   = $tf.frontend_api_key.value
-$containerAppName    = $tf.backend.value.container_app_name
-$acrLoginServer      = $tf.backend.value.acr_login_server
-$resourceGroup       = $tf.resource_group_name.value
-$backendFqdn         = $tf.backend.value.fqdn
-
-Write-Host ""
-Write-Host "Valores leidos de Terraform:" -ForegroundColor Cyan
-Write-Host "  AZURE_CLIENT_ID          = $azureClientId"
-Write-Host "  AZURE_TENANT_ID          = $azureTenantId"
-Write-Host "  AZURE_SUBSCRIPTION_ID    = $azureSubscriptionId"
-Write-Host "  AZURE_CONTAINER_APP_NAME = $containerAppName"
-Write-Host "  AZURE_ACR_LOGIN_SERVER   = $acrLoginServer"
-Write-Host "  AZURE_RESOURCE_GROUP     = $resourceGroup"
-Write-Host "  REACT_APP_API_URL        = https://$backendFqdn"
-Write-Host ""
-
-# Auto-leer storage account desde backend.conf si no se paso como parametro
-if ([string]::IsNullOrWhiteSpace($TfStateStorageAccount)) {
-    $backendConfPath = Join-Path $tfDir "backend.conf"
-    if (Test-Path $backendConfPath) {
-        $match = Select-String -Path $backendConfPath -Pattern 'storage_account_name\s*=\s*"([^"]+)"'
-        if ($match) {
-            $TfStateStorageAccount = $match.Matches[0].Groups[1].Value
-            Write-Host "  TF_STATE_STORAGE_ACCOUNT = $TfStateStorageAccount (leido de backend.conf)" -ForegroundColor DarkGray
-        }
-    }
+if ([string]::IsNullOrWhiteSpace($staticWebAppToken)) {
+    Write-Error "frontend_api_key esta vacio. Verificar que terraform apply haya desplegado el Static Web App."
 }
-if ([string]::IsNullOrWhiteSpace($TfStateStorageAccount)) {
-    $TfStateStorageAccount = Read-Host "Nombre del Storage Account del remote state (ej: sttfstatek1pnqer3)"
-}
+
+Write-Host "  AZURE_STATIC_WEB_APPS_API_TOKEN = (obtenido)" -ForegroundColor Cyan
+Write-Host ""
 
 # ---------------------------------------------------------------
 # 2. Obtener la public key del repo
@@ -180,40 +148,14 @@ Write-Host "Restaurando paquetes (Sodium.Core)..." -ForegroundColor Gray
 if ($LASTEXITCODE -ne 0) { Write-Error "dotnet restore fallo." }
 
 # ---------------------------------------------------------------
-# 4. Filtrar valores vacios y construir payload
+# 4. Construir payload con el unico secret
 # ---------------------------------------------------------------
-$allSecrets = @{
-    AZURE_CLIENT_ID                 = $azureClientId
-    AZURE_TENANT_ID                 = $azureTenantId
-    AZURE_SUBSCRIPTION_ID           = $azureSubscriptionId
-    AZURE_STATIC_WEB_APPS_API_TOKEN = $staticWebAppToken
-    REACT_APP_API_URL               = "https://$backendFqdn"
-    AZURE_ACR_LOGIN_SERVER          = $acrLoginServer
-    AZURE_CONTAINER_APP_NAME        = $containerAppName
-    AZURE_RESOURCE_GROUP            = $resourceGroup
-    TF_STATE_STORAGE_ACCOUNT        = $TfStateStorageAccount
-}
-
-$filteredSecrets = @{}
-foreach ($pair in $allSecrets.GetEnumerator()) {
-    $val = [string]$pair.Value
-    if ([string]::IsNullOrWhiteSpace($val) -or $val -eq "https://") {
-        Write-Host "  SKIP $($pair.Key) - valor vacio, secret no modificado" -ForegroundColor Yellow
-    } else {
-        $filteredSecrets[$pair.Key] = $val
-    }
-}
-
-if ($filteredSecrets.Count -eq 0) {
-    Write-Error "Todos los valores estan vacios. Verificar que terraform apply haya terminado."
-}
-
 $payload = [ordered]@{
     token      = $GithubToken
     repo       = $Repo
     key_id     = $pubKey.key_id
     public_key = $pubKey.key
-    secrets    = $filteredSecrets
+    secrets    = @{ AZURE_STATIC_WEB_APPS_API_TOKEN = $staticWebAppToken }
 } | ConvertTo-Json -Depth 3
 
 # ---------------------------------------------------------------
@@ -246,3 +188,8 @@ Write-Host ""
 Write-Host "Secrets manuales que todavia necesitas crear:" -ForegroundColor Yellow
 Write-Host "  TF_POSTGRESQL_PASSWORD  = (tu password de PostgreSQL)"
 Write-Host "  TF_JWT_SECRET_KEY       = (tu JWT secret key)"
+Write-Host "  TF_STATE_STORAGE_KEY    = (access key del Storage Account — ver terraform/backend.conf)"
+Write-Host "  TF_GITHUB_TOKEN         = (PAT con Variables: Read and write)"
+Write-Host ""
+Write-Host "Las 8 variables de infraestructura las crea 'terraform apply' automaticamente." -ForegroundColor DarkGray
+Write-Host "Ver: https://github.com/$Repo/settings/variables/actions" -ForegroundColor DarkGray
