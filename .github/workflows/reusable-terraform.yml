@@ -84,8 +84,10 @@ jobs:
 
       - name: Terraform Plan
         id: plan
+        env:
+          TF_LOG: DEBUG
         run: |
-          terraform plan -no-color -out=tfplan \
+          terraform plan -no-color -out=tfplan -parallelism=20 \
             -var="postgresql_admin_password=${{ secrets.TF_POSTGRESQL_PASSWORD }}" \
             -var="jwt_secret_key=${{ secrets.TF_JWT_SECRET_KEY }}" \
           2>&1 | tee plan_output.txt
