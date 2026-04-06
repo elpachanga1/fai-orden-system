@@ -35,10 +35,12 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      # En workflow_dispatch usamos los inputs; en push/PR usamos el diff de paths
-      backend: ${{ github.event_name == 'workflow_dispatch' && inputs.run_backend && 'true' || steps.filter.outputs.backend }}
-      frontend: ${{ github.event_name == 'workflow_dispatch' && inputs.run_frontend && 'true' || steps.filter.outputs.frontend }}
-      terraform: ${{ github.event_name == 'workflow_dispatch' && inputs.run_terraform && 'true' || steps.filter.outputs.terraform }}
+      # workflow_dispatch: usamos inputs explícitamente (true/false).
+      # push/PR: usamos el diff de paths. paths-filter sin diff retorna 'true',
+      # por eso no podemos hacer fallback a filter en workflow_dispatch.
+      backend: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_backend && 'true') || (github.event_name != 'workflow_dispatch' && steps.filter.outputs.backend) || 'false' }}
+      frontend: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_frontend && 'true') || (github.event_name != 'workflow_dispatch' && steps.filter.outputs.frontend) || 'false' }}
+      terraform: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_terraform && 'true') || (github.event_name != 'workflow_dispatch' && steps.filter.outputs.terraform) || 'false' }}
     steps:
       - uses: actions/checkout@v4
 
