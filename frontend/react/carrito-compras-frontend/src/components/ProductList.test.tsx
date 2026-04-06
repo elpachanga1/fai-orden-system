@@ -56,19 +56,19 @@ describe('ProductList', () => {
 
   it('renders all products returned from the service', async () => {
     render(<ProductList setShoppingCart={setShoppingCart} />);
-    await waitFor(() => expect(screen.getByText('Product Alpha')).toBeInTheDocument());
+    await screen.findByText('Product Alpha');
     expect(screen.getByText('Product Beta')).toBeInTheDocument();
   });
 
   it('renders price for each product', async () => {
     render(<ProductList setShoppingCart={setShoppingCart} />);
-    await waitFor(() => expect(screen.getByText('$10')).toBeInTheDocument());
+    await screen.findByText('$10');
     expect(screen.getByText('$20')).toBeInTheDocument();
   });
 
   it('renders product images with correct alt text', async () => {
     render(<ProductList setShoppingCart={setShoppingCart} />);
-    await waitFor(() => expect(screen.getByAltText('Product Alpha')).toBeInTheDocument());
+    await screen.findByAltText('Product Alpha');
     expect(screen.getByAltText('Product Beta')).toBeInTheDocument();
   });
 
@@ -103,8 +103,8 @@ describe('ProductList', () => {
 
   it('renders nothing when the service returns an empty list', async () => {
     (ProductService.getProducts as jest.Mock).mockResolvedValue([]);
-    const { container } = render(<ProductList setShoppingCart={setShoppingCart} />);
+    render(<ProductList setShoppingCart={setShoppingCart} />);
     await waitFor(() => expect(ProductService.getProducts).toHaveBeenCalled());
-    expect(container.querySelectorAll('.item')).toHaveLength(0);
+    expect(screen.queryAllByRole('button', { name: /añadir al carrito/i })).toHaveLength(0);
   });
 });

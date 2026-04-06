@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthMenu } from './Auth';
 import * as UserService from '../services/UserService';
+import Swal from 'sweetalert2';
 
 jest.mock('../services/UserService', () => ({
   AuthenticateUser: jest.fn(),
@@ -18,8 +19,6 @@ jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useNavigate: () => mockNavigate,
 }));
-
-import Swal from 'sweetalert2';
 
 const renderAuthMenu = () =>
   render(

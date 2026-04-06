@@ -99,17 +99,21 @@ describe('ShoppingCartMenu', () => {
 
   it('toggles cart visibility when the cart icon is clicked', () => {
     render(<ShoppingCartMenu shoppingCart={emptyCart} setShoppingCart={setShoppingCart} />);
+    // eslint-disable-next-line testing-library/no-node-access
     const cartPanel = document.querySelector('.container-cart-products')!;
     expect(cartPanel).toHaveClass('hidden-cart');
+    // eslint-disable-next-line testing-library/no-node-access
     fireEvent.click(document.querySelector('.container-cart-icon')!);
     expect(cartPanel).not.toHaveClass('hidden-cart');
   });
 
   it('hides the cart panel again on second click', () => {
     render(<ShoppingCartMenu shoppingCart={emptyCart} setShoppingCart={setShoppingCart} />);
+    // eslint-disable-next-line testing-library/no-node-access
     const icon = document.querySelector('.container-cart-icon')!;
     fireEvent.click(icon);
     fireEvent.click(icon);
+    // eslint-disable-next-line testing-library/no-node-access
     expect(document.querySelector('.container-cart-products')).toHaveClass('hidden-cart');
   });
 
@@ -117,6 +121,7 @@ describe('ShoppingCartMenu', () => {
     (ShoppingCartUtils.getShoppingCart as jest.Mock).mockResolvedValue(emptyCart);
     render(<ShoppingCartMenu shoppingCart={cartWithItems} setShoppingCart={setShoppingCart} />);
 
+    // eslint-disable-next-line testing-library/no-node-access
     const closeIcon = document.querySelector('.icon-close')!;
     fireEvent.click(closeIcon);
 
