@@ -6,6 +6,19 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      run_backend:
+        description: 'Correr pipeline de backend (.NET)'
+        type: boolean
+        default: true
+      run_frontend:
+        description: 'Correr pipeline de frontend (React)'
+        type: boolean
+        default: true
+      run_terraform:
+        description: 'Correr pipeline de Terraform'
+        type: boolean
+        default: true
 
 # id-token: write es requerido por reusable-terraform y reusable-dotnet (OIDC login).
 # El permiso se declara aqui porque GitHub solo puede elevar permisos del caller,
@@ -22,9 +35,10 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      terraform: ${{ steps.filter.outputs.terraform }}
+      # En workflow_dispatch usamos los inputs; en push/PR usamos el diff de paths
+      backend: ${{ github.event_name == 'workflow_dispatch' && inputs.run_backend && 'true' || steps.filter.outputs.backend }}
+      frontend: ${{ github.event_name == 'workflow_dispatch' && inputs.run_frontend && 'true' || steps.filter.outputs.frontend }}
+      terraform: ${{ github.event_name == 'workflow_dispatch' && inputs.run_terraform && 'true' || steps.filter.outputs.terraform }}
     steps:
       - uses: actions/checkout@v4
 
