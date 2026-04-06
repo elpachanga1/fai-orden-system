@@ -3,7 +3,7 @@
 #
 # Uso:
 #   cp terraform.tfvars.example terraform.tfvars
-#   # Editar terraform.tfvars con tus valores
+#   # Editar terraform.tfvars con tus valores reales
 #   terraform plan
 
 location    = "eastus2"
@@ -15,3 +15,33 @@ tags = {
   project = "carrito-compras"
   repo    = "elpachanga1/fai-orden-system"
 }
+
+# ---------------------------------------------------------------
+# Variables sensibles
+# Tambien se pueden pasar por variables de entorno para evitar
+# escribirlas en el archivo:
+#   $env:TF_VAR_postgresql_admin_password = "TuPassword123!"
+#   $env:TF_VAR_jwt_secret_key = "$(openssl rand -base64 32)"
+# ---------------------------------------------------------------
+
+postgresql_admin_username = "admincarrito"
+postgresql_admin_password = "REEMPLAZA_CON_PASSWORD_SEGURO_Abc123!"
+
+# Generar un JWT secret seguro (PowerShell):
+# -join ((1..32) | ForEach-Object { [char](Get-Random -Min 33 -Max 126) })
+jwt_secret_key = "REEMPLAZA_CON_CLAVE_ALEATORIA_DE_AL_MENOS_32_CHARS"
+
+# ---------------------------------------------------------------
+# GitHub — requerido para el modulo github (secrets) y oidc
+# ---------------------------------------------------------------
+# Crear PAT en: https://github.com/settings/tokens
+# Permisos necesarios: repo (para secrets) — NO necesita workflow para crear secrets
+github_token  = "ghp_REEMPLAZA_CON_TU_PAT"
+github_org    = "elpachanga1"
+github_repo   = "fai-orden-system"
+github_branch = "main"
+
+# Nombre del Storage Account del remote state (generado por bootstrap-remote-state.ps1)
+# Ejecuta para obtenerlo:
+#   az storage account list --resource-group rg-tfstate --query "[0].name" -o tsv
+tf_state_storage_account = "sttfstatek1pnqer3"

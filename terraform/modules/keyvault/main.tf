@@ -78,7 +78,7 @@ resource "azurerm_role_assignment" "terraform_secrets_officer" {
 
 resource "azurerm_key_vault_secret" "postgresql_connection_string" {
   name         = "postgresql-connection-string"
-  value        = "REPLACE_ME_AFTER_PHASE_5"
+  value        = var.postgresql_connection_string
   key_vault_id = azurerm_key_vault.main.id
 
   depends_on = [azurerm_role_assignment.terraform_secrets_officer]
@@ -86,7 +86,7 @@ resource "azurerm_key_vault_secret" "postgresql_connection_string" {
 
 resource "azurerm_key_vault_secret" "jwt_secret_key" {
   name         = "jwt-secret-key"
-  value        = "REPLACE_ME_WITH_SECURE_VALUE"
+  value        = var.jwt_secret_key
   key_vault_id = azurerm_key_vault.main.id
 
   depends_on = [azurerm_role_assignment.terraform_secrets_officer]

@@ -10,6 +10,14 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.0"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.0"
+    }
   }
 
   # Backend configurado via: terraform init -backend-config=backend.conf
@@ -29,3 +37,10 @@ provider "azurerm" {
     }
   }
 }
+
+provider "azuread" {}
+
+provider "github" {
+  token = var.github_token
+}
+

@@ -40,6 +40,19 @@ variable "app_insights_connection_string" {
   sensitive   = true
 }
 
+variable "postgresql_connection_string" {
+  description = "Connection string de PostgreSQL (formato Npgsql). Se guarda como secreto en Key Vault."
+  type        = string
+  sensitive   = true
+  default     = "PLACEHOLDER_REPLACE_AFTER_DB_CREATION"
+}
+
+variable "jwt_secret_key" {
+  description = "Clave secreta para firmar JWT. Minimo 32 caracteres, debe ser aleatoria y segura."
+  type        = string
+  sensitive   = true
+}
+
 variable "soft_delete_retention_days" {
   description = "Dias de retencion de soft delete. Minimo 7, maximo 90."
   type        = number

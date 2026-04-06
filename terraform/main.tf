@@ -4,6 +4,11 @@ locals {
     environment = var.environment
     managed_by  = "terraform"
   })
+
+  # Connection string en formato Npgsql — coincide con el formato que ya usa
+  # la app en appsettings.json. SSL Mode=Require es obligatorio en Azure
+  # PostgreSQL Flexible Server (TLS forzado).
+  postgresql_connection_string = "Host=${module.database.server_fqdn};Port=5432;Database=${module.database.database_name};Username=${var.postgresql_admin_username};Password=${var.postgresql_admin_password};SSL Mode=Require;Minimum Pool Size=1;Maximum Pool Size=100;"
 }
 
 # ---------------------------------------------------------------
@@ -66,4 +71,113 @@ module "keyvault" {
   private_endpoint_subnet_id     = module.networking.private_endpoints_subnet_id
   private_dns_zone_id            = module.networking.keyvault_private_dns_zone_id
   app_insights_connection_string = module.monitoring.application_insights_connection_string
+  postgresql_connection_string   = local.postgresql_connection_string
+  jwt_secret_key                 = var.jwt_secret_key
+}
+
+# ---------------------------------------------------------------
+# Modulo: Database (Fase 5)
+# PostgreSQL Flexible Server v16 desplegado en la subnet delegada
+# snet-database. La app se conecta por la VNet sin pasar por internet.
+# Depende de networking (subnet delegada y DNS zone de postgres).
+# ---------------------------------------------------------------
+module "database" {
+  source = "./modules/database"
+
+  resource_group_name    = azurerm_resource_group.main.name
+  location               = azurerm_resource_group.main.location
+  prefix                 = var.prefix
+  environment            = var.environment
+  tags                   = local.common_tags
+  database_subnet_id     = module.networking.database_subnet_id
+  private_dns_zone_id    = module.networking.postgres_private_dns_zone_id
+  administrator_login    = var.postgresql_admin_username
+  administrator_password = var.postgresql_admin_password
+}
+
+# ---------------------------------------------------------------
+# Modulo: Storage (Fase 6)
+# Blob Storage para imagenes de productos.
+# Acceso via Managed Identity del App Service (no account keys).
+# ---------------------------------------------------------------
+module "storage" {
+  source = "./modules/storage"
+
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = azurerm_resource_group.main.location
+  prefix                     = var.prefix
+  environment                = var.environment
+  tags                       = local.common_tags
+  private_endpoint_subnet_id = module.networking.private_endpoints_subnet_id
+  blob_private_dns_zone_id   = module.networking.blob_private_dns_zone_id
+}
+
+# ---------------------------------------------------------------
+# Modulo: Backend (Fase 7)
+# App Service Plan B1 Linux + App Service .NET 8.
+# VNet Integration a snet-appservice, secretos via Key Vault refs.
+# Depende de: networking, keyvault, storage.
+# ---------------------------------------------------------------
+module "backend" {
+  source = "./modules/backend"
+
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  prefix               = var.prefix
+  environment          = var.environment
+  tags                 = local.common_tags
+  appservice_subnet_id = module.networking.appservice_subnet_id
+  key_vault_id         = module.keyvault.key_vault_id
+  key_vault_uri        = module.keyvault.key_vault_uri
+  storage_account_id   = module.storage.storage_account_id
+}
+
+# ---------------------------------------------------------------
+# Modulo: Frontend (Fase 8)
+# Static Web App (Free tier) para el React 18 + TypeScript.
+# El deploy del bundle se hace via GitHub Actions con la api_key.
+# ---------------------------------------------------------------
+module "frontend" {
+  source = "./modules/frontend"
+
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  prefix              = var.prefix
+  environment         = var.environment
+  tags                = local.common_tags
+}
+
+# ---------------------------------------------------------------
+# Modulo: OIDC (Fase 9)
+# App Registration + Federated Identity Credential para GitHub Actions.
+# Sin secrets que rotar: GitHub Actions se autentica con JWT firmado.
+# Depende de: resource group (scope del rol Contributor).
+# ---------------------------------------------------------------
+module "oidc" {
+  source = "./modules/oidc"
+
+  resource_group_id = azurerm_resource_group.main.id
+  prefix            = var.prefix
+  environment       = var.environment
+  github_org        = var.github_org
+  github_repo       = var.github_repo
+  github_branch     = var.github_branch
+}
+
+# ---------------------------------------------------------------
+# Modulo: GitHub (Fase 10)
+# Crea los 5 secrets que necesitan los workflows de GitHub Actions.
+# Depende de: oidc (client_id), frontend (api_key), backend (hostname).
+# ---------------------------------------------------------------
+module "github" {
+  source = "./modules/github"
+
+  github_org               = var.github_org
+  github_repo              = var.github_repo
+  azure_client_id          = module.oidc.client_id
+  azure_tenant_id          = module.oidc.tenant_id
+  azure_subscription_id    = module.oidc.subscription_id
+  static_web_app_api_key   = module.frontend.api_key
+  backend_hostname         = module.backend.web_app_default_hostname
+  tf_state_storage_account = var.tf_state_storage_account
 }
