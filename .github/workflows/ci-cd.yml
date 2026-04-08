@@ -1,10 +1,10 @@
 name: CI / CD
 
 on:
-  push:
-    branches: ["**"]
-  pull_request:
-    branches: [main]
+  # push:
+  #   branches: ["**"]
+  # pull_request:
+  #   branches: [main]
   workflow_dispatch:
     inputs:
       run_backend:
@@ -90,6 +90,10 @@ jobs:
       deploy: ${{
         (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
         github.ref == 'refs/heads/main' }}
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
   # build + test siempre; deploy solo en push a main.
   # Si hubo cambios de terraform, se omite para no desplegar sobre infra en transicion.
