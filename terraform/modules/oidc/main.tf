@@ -58,6 +58,21 @@ resource "azuread_application_federated_identity_credential" "pull_request" {
   subject   = "repo:${var.github_org}/${var.github_repo}:pull_request"
 }
 
+# Federated credential para el environment 'production' de GitHub Actions.
+# Los jobs con `environment: production` emiten un subject distinto al de rama:
+#   repo:<org>/<repo>:environment:production
+# Sin este credential, azure/login y ARM_USE_OIDC fallan con AADSTS700213.
+# Aplica a: dotnet deploy job y terraform apply job.
+resource "azuread_application_federated_identity_credential" "production_environment" {
+  application_id = azuread_application.github_actions.id
+  display_name   = "github-environment-production"
+  description    = "Permite a GitHub Actions con environment 'production' en ${var.github_org}/${var.github_repo} autenticarse en Azure via OIDC."
+
+  audiences = ["api://AzureADTokenExchange"]
+  issuer    = "https://token.actions.githubusercontent.com"
+  subject   = "repo:${var.github_org}/${var.github_repo}:environment:production"
+}
+
 # ---------------------------------------------------------------
 # RBAC: Contributor en el resource group principal
 #

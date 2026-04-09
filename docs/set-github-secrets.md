@@ -78,8 +78,41 @@ terraform apply tfplan          ← crea 4 secrets + 5 variables en GitHub autom
         ↓
 Crear manualmente los 4 secrets manuales listados arriba
         ↓
+Agregar el federated credential para environment:production (ver abajo, solo la primera vez)
+        ↓
 Pipeline funciona
 ```
+
+---
+
+## Federated credential para `environment:production` (una sola vez)
+
+> **Por qué es necesario:** Terraform crea automáticamente dos federated credentials OIDC
+> (`ref:refs/heads/main` y `pull_request`). Sin embargo, los jobs de GitHub Actions que
+> declaran `environment: production` emiten un subject diferente:
+> `repo:<org>/<repo>:environment:production`. Azure rechaza el login con `AADSTS700213`
+> si no existe un credential que coincida exactamente con ese subject.
+>
+> **Cuándo correrlo:** Solo la primera vez, como parte del bootstrap. A partir del primer
+> `terraform apply` exitoso, el credential queda en el state y Terraform lo gestiona solo.
+
+```powershell
+# 1. Obtener el object ID del App Registration creado por Terraform
+$appId = az ad app list --display-name "sp-*-github-actions" --query "[0].id" -o tsv
+
+# 2. Agregar el federated credential para environment:production
+az ad app federated-credential create --id $appId --parameters '{
+  "name": "github-environment-production",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:elpachanga1/fai-orden-system:environment:production",
+  "audiences": ["api://AzureADTokenExchange"]
+}'
+```
+
+Verificar en: **Azure Portal → App Registrations → sp-\*-github-actions → Certificates & secrets → Federated credentials**
+
+Después de esto, el pipeline de GitHub Actions (`dotnet` deploy job y `terraform` apply job)
+podrá autenticarse via OIDC sin errores.
 
 ---
 
